@@ -31,7 +31,6 @@ jobs:
       with:
         name: J6ChordSearcher-win-x64
         path: ./publish/*.exe
-        retention-days: 90
     
     - name: Delete old artifacts
       if: success()
