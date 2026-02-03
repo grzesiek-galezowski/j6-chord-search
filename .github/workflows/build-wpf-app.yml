@@ -38,34 +38,46 @@ jobs:
       with:
         script: |
           const repo = context.repo;
-          
-          // Get all artifacts
-          const artifacts = await github.rest.actions.listArtifactsForRepo({
-            owner: repo.owner,
-            repo: repo.repo,
-            per_page: 100
-          });
-          
-          // Filter artifacts with the same name
           const artifactName = 'J6ChordSearcher-win-x64';
-          const matchingArtifacts = artifacts.data.artifacts
-            .filter(artifact => artifact.name === artifactName)
+          const currentRunId = context.runId;
+          
+          // Get all artifacts with pagination
+          let allArtifacts = [];
+          let page = 1;
+          let hasMore = true;
+          
+          while (hasMore) {
+            const response = await github.rest.actions.listArtifactsForRepo({
+              owner: repo.owner,
+              repo: repo.repo,
+              per_page: 100,
+              page: page
+            });
+            
+            allArtifacts = allArtifacts.concat(response.data.artifacts);
+            hasMore = response.data.artifacts.length === 100;
+            page++;
+          }
+          
+          // Filter artifacts with the same name, excluding current workflow run
+          const matchingArtifacts = allArtifacts
+            .filter(artifact => artifact.name === artifactName && artifact.workflow_run.id !== currentRunId)
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           
-          // Keep only the latest artifact, delete the rest
-          if (matchingArtifacts.length > 1) {
-            console.log(`Found ${matchingArtifacts.length} artifacts named '${artifactName}'`);
-            console.log(`Keeping the latest artifact (ID: ${matchingArtifacts[0].id})`);
-            
-            for (let i = 1; i < matchingArtifacts.length; i++) {
-              const artifact = matchingArtifacts[i];
-              console.log(`Deleting artifact ID: ${artifact.id}, created at: ${artifact.created_at}`);
+          console.log(`Found ${matchingArtifacts.length} old artifacts named '${artifactName}' (excluding current run)`);
+          
+          // Delete all old artifacts
+          for (const artifact of matchingArtifacts) {
+            console.log(`Deleting artifact ID: ${artifact.id}, created at: ${artifact.created_at}`);
+            try {
               await github.rest.actions.deleteArtifact({
                 owner: repo.owner,
                 repo: repo.repo,
                 artifact_id: artifact.id
               });
+            } catch (error) {
+              console.log(`Failed to delete artifact ${artifact.id}: ${error.message}`);
             }
-          } else {
-            console.log(`Only one artifact found, nothing to delete.`);
           }
+          
+          console.log('Artifact cleanup completed.');
