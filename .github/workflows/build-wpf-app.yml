@@ -61,7 +61,7 @@ jobs:
           
           // Filter artifacts with the same name, excluding current workflow run
           const matchingArtifacts = allArtifacts
-            .filter(artifact => artifact.name === artifactName && artifact.workflow_run.id !== currentRunId)
+            .filter(artifact => artifact.name === artifactName && (!artifact.workflow_run || artifact.workflow_run.id !== currentRunId))
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           
           console.log(`Found ${matchingArtifacts.length} old artifacts named '${artifactName}' (excluding current run)`);
