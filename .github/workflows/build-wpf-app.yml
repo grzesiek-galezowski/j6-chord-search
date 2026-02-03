@@ -59,15 +59,28 @@ jobs:
             page++;
           }
           
-          // Filter artifacts with the same name, excluding current workflow run
-          const matchingArtifacts = allArtifacts
-            .filter(artifact => artifact.name === artifactName && (!artifact.workflow_run || artifact.workflow_run.id !== currentRunId))
+          // Filter artifacts with the same name
+          const allMatchingArtifacts = allArtifacts
+            .filter(artifact => artifact.name === artifactName)
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           
-          console.log(`Found ${matchingArtifacts.length} old artifacts named '${artifactName}' (excluding current run)`);
+          // Check if current run's artifact is in the list
+          const currentRunArtifactExists = allMatchingArtifacts.some(
+            artifact => artifact.workflow_run && artifact.workflow_run.id === currentRunId
+          );
           
-          // Delete all old artifacts
-          for (const artifact of matchingArtifacts) {
+          // If current run's artifact exists, delete all others
+          // If not, keep the most recent one (it's the "last successful version" until the new one is available)
+          const artifactsToDelete = currentRunArtifactExists
+            ? allMatchingArtifacts.filter(artifact => !artifact.workflow_run || artifact.workflow_run.id !== currentRunId)
+            : allMatchingArtifacts.slice(1); // Keep the most recent, delete the rest
+          
+          console.log(`Found ${allMatchingArtifacts.length} artifacts named '${artifactName}'`);
+          console.log(`Current run artifact exists: ${currentRunArtifactExists}`);
+          console.log(`Will delete ${artifactsToDelete.length} old artifact(s)`);
+          
+          // Delete old artifacts
+          for (const artifact of artifactsToDelete) {
             console.log(`Deleting artifact ID: ${artifact.id}, created at: ${artifact.created_at}`);
             try {
               await github.rest.actions.deleteArtifact({
