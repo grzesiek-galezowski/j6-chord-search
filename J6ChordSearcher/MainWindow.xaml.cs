@@ -2,10 +2,12 @@
 using System.Runtime.Intrinsics.X86;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using GlobExpressions;
 using J6ChordSearcher.Logic;
 using J6ChordSearcher.NChord;
+using J6ChordSearcher.ViewModels;
 using LanguageExt.ClassInstances.Const;
 
 namespace J6ChordSearcher;
@@ -14,6 +16,12 @@ public partial class MainWindow : Window
 {
   private readonly List<ChordSet> chordSets;
   private readonly ObservableCollection<TransposedChordSet> searchResults;
+  private readonly ObservableCollection<ProgressionViewModel> progressions;
+
+  // For drag-based transposition
+  private bool isDragging = false;
+  private Point dragStartPoint;
+  private ProgressionViewModel? draggedProgression;
 
   // Maps note names to chromatic indices (0–11)
   private readonly Dictionary<string, int> noteToIndex = new()
@@ -34,6 +42,12 @@ public partial class MainWindow : Window
     chordSets = InitializeChordSets();
     searchResults = [];
     listBoxResults.ItemsSource = searchResults;
+
+    // Initialize progressions for chord browser
+    progressions = new ObservableCollection<ProgressionViewModel>(
+      chordSets.Select(cs => new ProgressionViewModel(cs))
+    );
+    ProgressionsItemsControl.ItemsSource = progressions;
   }
 
   private List<ChordSet> InitializeChordSets()
@@ -2119,5 +2133,54 @@ public partial class MainWindow : Window
     }
 
     throw new ArgumentException("Invalid chord name");
+  }
+
+  // Drag-based transposition event handlers
+  private void ProgressionText_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+  {
+    if (sender is TextBlock textBlock && textBlock.DataContext is ProgressionViewModel progression)
+    {
+      isDragging = true;
+      dragStartPoint = e.GetPosition(textBlock);
+      draggedProgression = progression;
+      textBlock.CaptureMouse();
+      e.Handled = true;
+    }
+  }
+
+  private void ProgressionText_MouseMove(object sender, MouseEventArgs e)
+  {
+    if (isDragging && draggedProgression != null && sender is TextBlock textBlock)
+    {
+      var currentPoint = e.GetPosition(textBlock);
+      var deltaX = currentPoint.X - dragStartPoint.X;
+
+      // Each 30 pixels of horizontal movement = 1 semitone
+      var semitones = (int)(deltaX / 30.0);
+
+      if (semitones != 0)
+      {
+        var newTransposition = draggedProgression.Transposition + semitones;
+
+        // Wrap around at 12 semitones (octave)
+        newTransposition = ((newTransposition % 12) + 12) % 12;
+
+        draggedProgression.Transposition = newTransposition;
+        dragStartPoint = currentPoint; // Update drag start point for smooth dragging
+      }
+
+      e.Handled = true;
+    }
+  }
+
+  private void ProgressionText_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+  {
+    if (isDragging && sender is TextBlock textBlock)
+    {
+      isDragging = false;
+      draggedProgression = null;
+      textBlock.ReleaseMouseCapture();
+      e.Handled = true;
+    }
   }
 }

@@ -30,24 +30,85 @@
         </Style>
     </Window.Resources>
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="5"/>
+            <ColumnDefinition Width="1.5*"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Input Fields -->
-        <DockPanel Grid.Row="0" Margin="10">
-            <TextBlock Text="Progression:" Foreground="#FF6600" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
-            <TextBox x:Name="ProgressionTextBox" Height="30" VerticalContentAlignment="Center" FontSize="14" ToolTip="Enter chords separated by spaces (e.g., C Am F G)" TextChanged="ProgressionTextBox_TextChanged"/>
-        </DockPanel>
+        <!-- Left Panel: Search Results -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <!-- Search Button -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,10,10" HorizontalAlignment="Right">
-            <Button Content="CLEAR" Click="ClearButton_Click" Width="100" Background="#333333"/>
-        </StackPanel>
+            <!-- Input Fields -->
+            <DockPanel Grid.Row="0" Margin="10">
+                <TextBlock Text="Progression:" Foreground="#FF6600" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+                <TextBox x:Name="ProgressionTextBox" Height="30" VerticalContentAlignment="Center" FontSize="14" ToolTip="Enter chords separated by spaces (e.g., C Am F G)" TextChanged="ProgressionTextBox_TextChanged"/>
+            </DockPanel>
 
-        <!-- Results -->
-        <ListBox Grid.Row="2" x:Name="listBoxResults" Margin="5"/>
+            <!-- Search Button -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,10,10" HorizontalAlignment="Right">
+                <Button Content="CLEAR" Click="ClearButton_Click" Width="100" Background="#333333"/>
+            </StackPanel>
+
+            <!-- Results -->
+            <ListBox Grid.Row="2" x:Name="listBoxResults" Margin="5"/>
+        </Grid>
+
+        <!-- GridSplitter -->
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#333333"/>
+
+        <!-- Right Panel: Chord Browser -->
+        <Grid Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="#333333" Padding="10">
+                <TextBlock Text="CHORD BROWSER" Foreground="#FF6600" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center"/>
+            </Border>
+
+            <!-- Progressions List -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="5">
+                <ItemsControl x:Name="ProgressionsItemsControl">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="#333333" BorderThickness="1" Margin="0,5" Background="#2A2A2A" Padding="10">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="{Binding DisplayText}" 
+                                               Foreground="White" 
+                                               TextWrapping="Wrap"
+                                               FontSize="11"
+                                               MouseLeftButtonDown="ProgressionText_MouseLeftButtonDown"
+                                               MouseMove="ProgressionText_MouseMove"
+                                               MouseLeftButtonUp="ProgressionText_MouseLeftButtonUp"
+                                               Cursor="Hand"/>
+
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="5,0,0,0">
+                                        <TextBlock Text="{Binding Transposition, StringFormat='+{0}'}" 
+                                                   Foreground="#FF6600" 
+                                                   FontWeight="Bold"
+                                                   FontSize="12"
+                                                   VerticalAlignment="Center"
+                                                   Margin="5,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </Window>
