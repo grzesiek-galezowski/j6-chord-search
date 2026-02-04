@@ -43,7 +43,7 @@ jobs:
           script: |
             const repo = context.repo;
             const artifactName = 'J6ChordSearcher-win-x64';
-            const currentArtifactId = parseInt('${{ steps.upload-artifact.outputs.artifact-id }}');
+            const currentArtifactId = parseInt('${{ steps.upload-artifact.outputs.artifact-id }}', 10);
             
             console.log(`Current artifact ID: ${currentArtifactId}`);
             
