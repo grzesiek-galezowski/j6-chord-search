@@ -8,6 +8,7 @@ public class ProgressionViewModel : INotifyPropertyChanged
 {
   private int _transposition;
   private List<string> _displayedChords;
+  private KeyboardMappingViewModel _keyboardMapping;
 
   public ChordSet BaseProgression { get; }
 
@@ -33,6 +34,17 @@ public class ProgressionViewModel : INotifyPropertyChanged
       _displayedChords = value;
       OnPropertyChanged();
       OnPropertyChanged(nameof(DisplayText));
+      UpdateKeyboardMapping();
+    }
+  }
+
+  public KeyboardMappingViewModel KeyboardMapping
+  {
+    get => _keyboardMapping;
+    private set
+    {
+      _keyboardMapping = value;
+      OnPropertyChanged();
     }
   }
 
@@ -52,11 +64,17 @@ public class ProgressionViewModel : INotifyPropertyChanged
     BaseProgression = baseProgression;
     _transposition = 0;
     _displayedChords = baseProgression.Chords.ToList();
+    _keyboardMapping = new KeyboardMappingViewModel(_displayedChords);
   }
 
   private void UpdateDisplayedChords()
   {
     DisplayedChords = BaseProgression.Chords.Select(chord => TransposeChord(chord, Transposition)).ToList();
+  }
+
+  private void UpdateKeyboardMapping()
+  {
+    KeyboardMapping = new KeyboardMappingViewModel(DisplayedChords);
   }
 
   private string TransposeChord(string chord, int semitones)

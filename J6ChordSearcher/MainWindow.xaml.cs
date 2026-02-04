@@ -2107,6 +2107,28 @@ public partial class MainWindow : Window
   {
       ProgressionTextBox.Clear();
       searchResults.Clear();
+
+      // Reset the browser to show all progressions with zero transposition
+      progressions.Clear();
+      foreach (var chordSet in chordSets)
+      {
+          progressions.Add(new ProgressionViewModel(chordSet));
+      }
+  }
+
+  private void BrowseButton_Click(object sender, RoutedEventArgs e)
+  {
+      // Populate the browser with the current search results
+      progressions.Clear();
+
+      foreach (var result in searchResults)
+      {
+          var progression = new ProgressionViewModel(result.OriginalSet)
+          {
+              Transposition = result.Transposition
+          };
+          progressions.Add(progression);
+      }
   }
 
   private static bool IsMatch(string chord, string term)
@@ -2136,27 +2158,28 @@ public partial class MainWindow : Window
   }
 
   // Drag-based transposition event handlers
-  private void ProgressionText_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+  private void ProgressionBorder_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
   {
-    if (sender is TextBlock textBlock && textBlock.DataContext is ProgressionViewModel progression)
+    if (sender is Border border && border.DataContext is ProgressionViewModel progression)
     {
       isDragging = true;
-      dragStartPoint = e.GetPosition(textBlock);
+      dragStartPoint = e.GetPosition(border);
       draggedProgression = progression;
-      textBlock.CaptureMouse();
+      border.CaptureMouse();
       e.Handled = true;
     }
   }
 
-  private void ProgressionText_MouseMove(object sender, MouseEventArgs e)
+  private void ProgressionBorder_MouseMove(object sender, MouseEventArgs e)
   {
-    if (isDragging && draggedProgression != null && sender is TextBlock textBlock)
+    if (isDragging && draggedProgression != null && sender is Border border)
     {
-      var currentPoint = e.GetPosition(textBlock);
+      var currentPoint = e.GetPosition(border);
       var deltaX = currentPoint.X - dragStartPoint.X;
 
       // Each 30 pixels of horizontal movement = 1 semitone
-      var semitones = (int)(deltaX / 30.0);
+      // Negative deltaX (moving mouse left) = drag content right = increase transposition
+      var semitones = (int)(-deltaX / 30.0);
 
       if (semitones != 0)
       {
@@ -2173,13 +2196,13 @@ public partial class MainWindow : Window
     }
   }
 
-  private void ProgressionText_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+  private void ProgressionBorder_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
   {
-    if (isDragging && sender is TextBlock textBlock)
+    if (isDragging && sender is Border border)
     {
       isDragging = false;
       draggedProgression = null;
-      textBlock.ReleaseMouseCapture();
+      border.ReleaseMouseCapture();
       e.Handled = true;
     }
   }

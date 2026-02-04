@@ -1,9 +1,12 @@
 ﻿<Window x:Class="J6ChordSearcher.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:J6ChordSearcher.Converters"
         Title="J-6 Chord Set Searcher" Height="400" Width="600"
+        WindowState="Maximized"
         Background="#1A1A1A" Foreground="White">
     <Window.Resources>
+        <converters:KeyboardMappingConverter x:Key="KeyboardConverter"/>
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="#333333"/>
             <Setter Property="Foreground" Value="White"/>
@@ -52,6 +55,7 @@
 
             <!-- Search Button -->
             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,10,10" HorizontalAlignment="Right">
+                <Button Content="BROWSE" Click="BrowseButton_Click" Width="100"/>
                 <Button Content="CLEAR" Click="ClearButton_Click" Width="100" Background="#333333"/>
             </StackPanel>
 
@@ -79,31 +83,40 @@
                 <ItemsControl x:Name="ProgressionsItemsControl">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="#333333" BorderThickness="1" Margin="0,5" Background="#2A2A2A" Padding="10">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+                            <Border BorderBrush="#333333" BorderThickness="1" Margin="0,5" Background="#2A2A2A" Padding="10"
+                                    MouseLeftButtonDown="ProgressionBorder_MouseLeftButtonDown"
+                                    MouseMove="ProgressionBorder_MouseMove"
+                                    MouseLeftButtonUp="ProgressionBorder_MouseLeftButtonUp"
+                                    Cursor="Hand">
+                                <StackPanel>
+                                    <!-- Header with progression info and transposition -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                                    <TextBlock Grid.Column="0" Text="{Binding DisplayText}" 
-                                               Foreground="White" 
-                                               TextWrapping="Wrap"
-                                               FontSize="11"
-                                               MouseLeftButtonDown="ProgressionText_MouseLeftButtonDown"
-                                               MouseMove="ProgressionText_MouseMove"
-                                               MouseLeftButtonUp="ProgressionText_MouseLeftButtonUp"
-                                               Cursor="Hand"/>
-
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="5,0,0,0">
-                                        <TextBlock Text="{Binding Transposition, StringFormat='+{0}'}" 
+                                        <TextBlock Grid.Column="0" 
                                                    Foreground="#FF6600" 
                                                    FontWeight="Bold"
-                                                   FontSize="12"
+                                                   FontSize="12">
+                                            <Run Text="{Binding BaseProgression.Number, StringFormat='#{0}'}"/>
+                                            <Run Text="{Binding BaseProgression.Name}"/>
+                                        </TextBlock>
+
+                                        <TextBlock Grid.Column="1" 
+                                                   Text="{Binding Transposition, StringFormat='+{0}'}" 
+                                                   Foreground="#FF6600" 
+                                                   FontWeight="Bold"
+                                                   FontSize="14"
                                                    VerticalAlignment="Center"
                                                    Margin="5,0"/>
-                                    </StackPanel>
-                                </Grid>
+                                    </Grid>
+
+                                    <!-- Single Keyboard showing chord-to-key mapping -->
+                                    <ContentControl Content="{Binding KeyboardMapping, Converter={StaticResource KeyboardConverter}}" 
+                                                    HorizontalAlignment="Center"/>
+                                </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
