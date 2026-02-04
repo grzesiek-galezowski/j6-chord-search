@@ -43,12 +43,14 @@ jobs:
           script: |
             const repo = context.repo;
             const artifactName = 'J6ChordSearcher-win-x64';
-            const currentArtifactId = parseInt('${{ steps.upload-artifact.outputs.artifact-id }}', 10);
+            const artifactIdString = '${{ steps.upload-artifact.outputs.artifact-id }}';
+            const currentArtifactId = parseInt(artifactIdString, 10);
             
+            console.log(`Artifact ID string: ${artifactIdString}`);
             console.log(`Current artifact ID: ${currentArtifactId}`);
             
             // Validate artifact ID
-            if (!currentArtifactId || isNaN(currentArtifactId)) {
+            if (isNaN(currentArtifactId)) {
               console.error('Failed to get valid artifact ID from upload step');
               throw new Error('Invalid artifact ID');
             }
