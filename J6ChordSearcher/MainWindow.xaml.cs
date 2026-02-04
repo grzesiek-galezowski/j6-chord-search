@@ -2039,24 +2039,27 @@ public partial class MainWindow : Window
     ];
   }
 
-  private void SearchButton_Click(object sender, RoutedEventArgs e)
+  private void ProgressionTextBox_TextChanged(object sender, TextChangedEventArgs e)
+  {
+    PerformSearch();
+  }
+
+  private void PerformSearch()
   {
     try
     {
       searchResults.Clear();
 
-      // Collect non-empty search terms from TextBoxes
-      List<string> searchTerms = [];
-      foreach (var textBox in FindVisualChildren<TextBox>(this))
+      // Collect non-empty search terms from simple text box
+      var text = ProgressionTextBox.Text;
+      if (string.IsNullOrWhiteSpace(text))
       {
-        var trimmedText = textBox.Text.Trim();
-        if (!string.IsNullOrWhiteSpace(trimmedText))
-        {
-          searchTerms.Add(trimmedText);
-        }
+        return;
       }
 
-      if (searchTerms.Count != 0)
+      var searchTerms = text.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+      if (searchTerms.Length != 0)
       {
         foreach (var chordSet in chordSets)
         {
@@ -2084,7 +2087,12 @@ public partial class MainWindow : Window
     {
       MessageBox.Show(ex.ToString());
     }
-    // Search all chord sets and their transpositions
+  }
+
+  private void ClearButton_Click(object sender, RoutedEventArgs e)
+  {
+      ProgressionTextBox.Clear();
+      searchResults.Clear();
   }
 
   private static bool IsMatch(string chord, string term)
@@ -2111,26 +2119,5 @@ public partial class MainWindow : Window
     }
 
     throw new ArgumentException("Invalid chord name");
-  }
-
-  // Helper to find all TextBoxes
-  private IEnumerable<T> FindVisualChildren<T>(DependencyObject depObj) where T : DependencyObject
-  {
-    if (depObj != null)
-    {
-      for (var i = 0; i < VisualTreeHelper.GetChildrenCount(depObj); i++)
-      {
-        var child = VisualTreeHelper.GetChild(depObj, i);
-        if (child is T tChild)
-        {
-          yield return tChild;
-        }
-
-        foreach (var childOfChild in FindVisualChildren<T>(child))
-        {
-          yield return childOfChild;
-        }
-      }
-    }
   }
 }

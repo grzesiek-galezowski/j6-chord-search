@@ -1,7 +1,34 @@
 ﻿<Window x:Class="J6ChordSearcher.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="J-6 Chord Set Searcher" Height="400" Width="600">
+        Title="J-6 Chord Set Searcher" Height="400" Width="600"
+        Background="#1A1A1A" Foreground="White">
+    <Window.Resources>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#FF6600"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#FF6600"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Style.Resources>
+                <Style TargetType="Border">
+                    <Setter Property="CornerRadius" Value="3"/>
+                </Style>
+            </Style.Resources>
+        </Style>
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="#1A1A1A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#333333"/>
+        </Style>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -10,23 +37,15 @@
         </Grid.RowDefinitions>
 
         <!-- Input Fields -->
-        <WrapPanel Grid.Row="0" Margin="5">
-            <TextBox x:Name="textBox1" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox2" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox3" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox4" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox5" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox6" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox7" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox8" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox9" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox10" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox11" Width="100" Margin="5"/>
-            <TextBox x:Name="textBox12" Width="100" Margin="5"/>
-        </WrapPanel>
+        <DockPanel Grid.Row="0" Margin="10">
+            <TextBlock Text="Progression:" Foreground="#FF6600" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+            <TextBox x:Name="ProgressionTextBox" Height="30" VerticalContentAlignment="Center" FontSize="14" ToolTip="Enter chords separated by spaces (e.g., C Am F G)" TextChanged="ProgressionTextBox_TextChanged"/>
+        </DockPanel>
 
         <!-- Search Button -->
-        <Button Grid.Row="1" Content="Search" Click="SearchButton_Click" Margin="5" Width="100" HorizontalAlignment="Left"/>
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,0,10,10" HorizontalAlignment="Right">
+            <Button Content="CLEAR" Click="ClearButton_Click" Width="100" Background="#333333"/>
+        </StackPanel>
 
         <!-- Results -->
         <ListBox Grid.Row="2" x:Name="listBoxResults" Margin="5"/>
