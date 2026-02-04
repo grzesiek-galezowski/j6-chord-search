@@ -30,19 +30,22 @@ jobs:
         run: dotnet publish J6ChordSearcher/J6ChordSearcher.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
     
       - name: Upload artifact
+        id: upload-artifact
         uses: actions/upload-artifact@v4
         with:
           name: J6ChordSearcher-win-x64
           path: ./publish/*.exe
     
       - name: Delete old artifacts
-        if: success()
+        if: success() && github.event_name != 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const repo = context.repo;
             const artifactName = 'J6ChordSearcher-win-x64';
-            const currentRunId = context.runId;
+            const currentArtifactId = parseInt('${{ steps.upload-artifact.outputs.artifact-id }}');
+            
+            console.log(`Current artifact ID: ${currentArtifactId}`);
             
             // Get all artifacts with pagination
             let allArtifacts = [];
@@ -62,27 +65,14 @@ jobs:
               page++;
             }
             
-            // Filter artifacts with the same name
-            const allMatchingArtifacts = allArtifacts
-              .filter(artifact => artifact.name === artifactName)
+            // Filter artifacts with the same name, excluding the current one
+            const artifactsToDelete = allArtifacts
+              .filter(artifact => artifact.name === artifactName && artifact.id !== currentArtifactId)
               .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
             
-            // Check if current run's artifact is in the list
-            const currentRunArtifactExists = allMatchingArtifacts.some(
-              artifact => artifact.workflow_run && artifact.workflow_run.id === currentRunId
-            );
+            console.log(`Found ${artifactsToDelete.length} old artifact(s) to delete`);
             
-            // If current run's artifact exists, delete all others
-            // If not, keep the most recent one (it's the "last successful version" until the new one is available)
-            const artifactsToDelete = currentRunArtifactExists
-              ? allMatchingArtifacts.filter(artifact => !artifact.workflow_run || artifact.workflow_run.id !== currentRunId)
-              : allMatchingArtifacts.slice(1); // Keep the most recent, delete the rest
-            
-            console.log(`Found ${allMatchingArtifacts.length} artifacts named '${artifactName}'`);
-            console.log(`Current run artifact exists: ${currentRunArtifactExists}`);
-            console.log(`Will delete ${artifactsToDelete.length} old artifact(s)`);
-            
-            // Delete old artifacts
+            // Delete all old artifacts
             for (const artifact of artifactsToDelete) {
               console.log(`Deleting artifact ID: ${artifact.id}, created at: ${artifact.created_at}`);
               try {
