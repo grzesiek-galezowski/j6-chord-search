@@ -47,6 +47,12 @@ jobs:
             
             console.log(`Current artifact ID: ${currentArtifactId}`);
             
+            // Validate artifact ID
+            if (!currentArtifactId || isNaN(currentArtifactId)) {
+              console.error('Failed to get valid artifact ID from upload step');
+              throw new Error('Invalid artifact ID');
+            }
+            
             // Get all artifacts with pagination
             let allArtifacts = [];
             let page = 1;
