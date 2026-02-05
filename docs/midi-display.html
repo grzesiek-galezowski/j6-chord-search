@@ -1,0 +1,134 @@
+<html>
+<head>
+  <title>MIDI Chord Display</title>
+  <style>
+    #container {
+      font-family: monospace;
+      font-size: 20px;
+    }
+    #offsets, #notes {
+      margin-bottom: 10px;
+    }
+    #piano {
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="offsets">Offsets: []</div>
+    <div id="notes">Notes: []</div>
+    <canvas id="piano" width="1050" height="100"></canvas>
+  </div>
+  <script>
+    // Set to track pressed MIDI note numbers
+    let pressedNotes = new Set();
+
+    // Note names for MIDI numbers (C0 = 12, C1 = 24, ..., C4 = 60, etc.)
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    function getNoteName(midiNote) {
+      const octave = Math.floor(midiNote / 12) - 1; // MIDI 12 = C0
+      const note = noteNames[midiNote % 12];
+      return `${note}${octave}`;
+    }
+
+    // Piano drawing setup
+    const canvas = document.getElementById('piano');
+    const ctx = canvas.getContext('2d');
+    const startNote = 12; // C0
+    const endNote = 119;  // B9
+    const whiteKeyWidth = 15;
+    const blackKeyWidth = 9;
+    const blackKeyHeight = 60;
+    const whiteKeyHeight = 100;
+    const blackOffsets = [7.5, 22.5, 52.5, 67.5, 82.5]; // Centers for C#, D#, F#, G#, A# in each octave
+
+    // Draw the piano keyboard
+    function drawPiano() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw white keys (70 keys for 10 octaves)
+      for (let i = 0; i < 70; i++) {
+        const x = i * whiteKeyWidth;
+        const octave = Math.floor(i / 7);
+        const noteIndex = i % 7;
+        const noteOffset = [0, 2, 4, 5, 7, 9, 11][noteIndex]; // C, D, E, F, G, A, B
+        const note = startNote + octave * 12 + noteOffset;
+        if (note <= endNote) {
+          ctx.fillStyle = pressedNotes.has(note) ? 'yellow' : 'white';
+          ctx.fillRect(x, 0, whiteKeyWidth, whiteKeyHeight);
+          ctx.strokeRect(x, 0, whiteKeyWidth, whiteKeyHeight);
+        }
+      }
+
+      // Draw black keys (50 keys, 5 per octave for 10 octaves)
+      for (let octave = 0; octave < 10; octave++) {
+        const startX = (octave * 7 * whiteKeyWidth) + 7;
+        const blackNotes = [1, 3, 6, 8, 10]; // C#, D#, F#, G#, A#
+        for (let i = 0; i < 5; i++) {
+          const note = startNote + octave * 12 + blackNotes[i];
+          if (note <= endNote) {
+            const x = startX + blackOffsets[i] - blackKeyWidth / 2;
+            ctx.fillStyle = pressedNotes.has(note) ? 'yellow' : 'black';
+            ctx.fillRect(x, 0, blackKeyWidth, blackKeyHeight);
+          }
+        }
+      }
+    }
+
+    // Update all displays
+    function updateDisplay() {
+      const offsetsDiv = document.getElementById('offsets');
+      const notesDiv = document.getElementById('notes');
+      if (pressedNotes.size === 0) {
+        offsetsDiv.innerText = 'Offsets: []';
+        notesDiv.innerText = 'Notes: []';
+      } else {
+        const notesArray = Array.from(pressedNotes).sort((a, b) => a - b);
+        const root = Math.min(...pressedNotes);
+        const differences = notesArray.map(note => note - root);
+        offsetsDiv.innerText = 'Offsets: ' + JSON.stringify(differences);
+        const noteNamesArray = notesArray.map(note => getNoteName(note));
+        notesDiv.innerText = 'Notes: ' + JSON.stringify(noteNamesArray);
+      }
+      drawPiano();
+    }
+
+    // MIDI setup
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess()
+        .then(onMIDISuccess, onMIDIFailure);
+    } else {
+      document.getElementById('offsets').innerText = 'Web MIDI API not supported.';
+    }
+
+    function onMIDISuccess(midiAccess) {
+      const inputs = midiAccess.inputs.values();
+      for (let input of inputs) {
+        input.onmidimessage = handleMIDIMessage;
+        break; // Use first MIDI input for simplicity
+      }
+      drawPiano(); // Initial draw
+    }
+
+    function onMIDIFailure() {
+      document.getElementById('offsets').innerText = 'Failed to access MIDI devices.';
+    }
+
+    function handleMIDIMessage(event) {
+      const message = event.data;
+      const type = message[0];
+      const note = message[1];
+      const velocity = message[2];
+      console.log('MIDI message:', type, note, velocity);
+      if (type >= 144 && type <= 159 && velocity > 0) {
+        pressedNotes.add(note);
+      } else if ((type >= 128 && type <= 143) || (type >= 144 && type <= 159 && velocity === 0)) {
+        pressedNotes.delete(note);
+      }
+      console.log('Pressed notes:', Array.from(pressedNotes));
+      updateDisplay();
+    }
+  </script>
+</body>
+</html>
