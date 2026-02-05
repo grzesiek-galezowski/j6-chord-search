@@ -237,7 +237,7 @@
 </head>
 <body>
   <header>
-    <h1>J-6 Chord Sequence Browser (Web)</h1>
+    <h1>Roland J-6 Chord Sequence Search and Browser</h1>
     <p>Client-side search and browse of all chord sets. No server required.</p>
   </header>
 
@@ -2415,16 +2415,40 @@ return
           : `<div class="black-key-slot"><div class="black-key"></div></div>`
       ).join("");
 
-      const keyboard = `<div class="keyboard">
+      const keyboard = `<div class="keyboard" data-keyboard-id="${set.id}">
         <div class="white-keys">${whiteKeys}</div>
         <div class="black-keys">${blackKeys}</div>
       </div>`;
 
-      return `<div class="card">
+      return `<div class="card" data-card-id="${set.id}">
         ${header}
         ${slider}
         ${keyboard}
       </div>`;
+    }
+
+    function updateKeyboard(id, chords) {
+      const keyboard = browserHost.querySelector(`[data-keyboard-id="${id}"]`);
+      const badge = browserHost.querySelector(`[data-card-id="${id}"] .badge`);
+      if (!keyboard) return;
+
+      const whiteKeyIndices = [0, 2, 4, 5, 7, 9, 11];
+      const blackKeyIndices = [1, 3, null, 6, 8, 10, null];
+
+      const whiteKeys = whiteKeyIndices.map(i => 
+        `<div class="white-key"><span class="chord-label">${chords[i]}</span></div>`
+      ).join("");
+
+      const blackKeys = blackKeyIndices.map(i => 
+        i !== null 
+          ? `<div class="black-key-slot"><div class="black-key"><span class="chord-label">${chords[i]}</span></div></div>`
+          : `<div class="black-key-slot"><div class="black-key"></div></div>`
+      ).join("");
+
+      keyboard.innerHTML = `<div class="white-keys">${whiteKeys}</div><div class="black-keys">${blackKeys}</div>`;
+
+      const k = browserState.get(id) ?? 0;
+      if (badge) badge.textContent = `+${k} st`;
     }
 
     browserHost.addEventListener("input", evt => {
@@ -2433,7 +2457,11 @@ return
         const id = Number(target.dataset.id);
         const value = Number(target.value);
         browserState.set(id, value);
-        renderBrowser();
+        const set = chordSets.find(s => s.id === id);
+        if (set) {
+          const transposed = set.chords.map(ch => transposeChord(ch, value));
+          updateKeyboard(id, transposed);
+        }
       }
     });
 
