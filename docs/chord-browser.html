@@ -2433,16 +2433,16 @@ return
       const blackKeyIndices = [1, 3, null, 6, 8, 10, null]; // null = no black key in that slot
 
       const whiteKeys = whiteKeyIndices.map(i => 
-        `<div class="white-key"><span class="chord-label">${chords[i]}</span></div>`
+        `<div class="white-key" data-chord-index="${i}"><span class="chord-label">${chords[i]}</span></div>`
       ).join("");
 
       const blackKeys = blackKeyIndices.map(i => 
         i !== null 
-          ? `<div class="black-key-slot"><div class="black-key"><span class="chord-label">${chords[i]}</span></div></div>`
+          ? `<div class="black-key-slot"><div class="black-key" data-chord-index="${i}"><span class="chord-label">${chords[i]}</span></div></div>`
           : `<div class="black-key-slot"><div class="black-key"></div></div>`
       ).join("");
 
-      const keyboard = `<div class="keyboard" data-keyboard-id="${set.id}">
+      const keyboard = `<div class="keyboard" data-keyboard-id="${set.id}" data-set-number="${set.number}" data-transposition="${transposition}">
         <div class="white-keys">${whiteKeys}</div>
         <div class="black-keys">${blackKeys}</div>
       </div>`;
@@ -2463,18 +2463,19 @@ return
       const blackKeyIndices = [1, 3, null, 6, 8, 10, null];
 
       const whiteKeys = whiteKeyIndices.map(i => 
-        `<div class="white-key"><span class="chord-label">${chords[i]}</span></div>`
+        `<div class="white-key" data-chord-index="${i}"><span class="chord-label">${chords[i]}</span></div>`
       ).join("");
 
       const blackKeys = blackKeyIndices.map(i => 
         i !== null 
-          ? `<div class="black-key-slot"><div class="black-key"><span class="chord-label">${chords[i]}</span></div></div>`
+          ? `<div class="black-key-slot"><div class="black-key" data-chord-index="${i}"><span class="chord-label">${chords[i]}</span></div></div>`
           : `<div class="black-key-slot"><div class="black-key"></div></div>`
       ).join("");
 
       keyboard.innerHTML = `<div class="white-keys">${whiteKeys}</div><div class="black-keys">${blackKeys}</div>`;
 
       const k = browserState.get(id) ?? 0;
+      keyboard.dataset.transposition = k;
       if (badge) badge.textContent = `+${k} st`;
     }
 
@@ -2502,6 +2503,32 @@ return
     search();
 
     /* ── Chord Playback ───────────────────────────────────────────── */
+
+    /* Exact MIDI notes from the Roland J-6 manual, indexed by set number then chord position (0-11). */
+    const _exactNotes = {
+      1: [[64,62,55,48],[65,63,60,49],[60,57,65,50],[67,62,58,51],[67,62,60,52],[67,64,57,41],[64,62,57,42],[67,64,62,43],[65,62,60,44],[65,60,57,45],[67,62,58,46],[67,62,59,47]],
+      2: [[62,59,52,48],[64,58,55,49],[64,60,53,50],[66,60,57,51],[67,62,59,52],[67,64,57,53],[65,60,57,54],[65,60,57,43],[67,60,59,44],[64,60,55,46],[65,62,57,47],[67,64,59,52]],
+      3: [[62,57,52,48],[64,59,53,49],[64,60,53,50],[66,61,55,51],[67,62,56,52],[67,64,57,53],[69,64,58,54],[64,59,53,43],[65,60,54,44],[62,60,55,45],[62,60,56,46],[64,62,57,47]],
+      4: [[62,57,52,48],[63,59,53,49],[64,60,53,50],[65,61,55,51],[66,62,55,52],[67,63,56,41],[64,60,57,42],[63,59,53,43],[65,60,54,44],[65,61,55,45],[67,62,56,46],[64,62,57,47]],
+      5: [[62,59,52,48],[63,60,53,49],[64,61,54,50],[65,62,55,51],[66,63,56,52],[67,64,57,53],[68,65,58,54],[69,66,59,55],[70,67,60,56],[71,68,61,57],[72,69,62,58],[73,70,63,59]],
+      6: [[64,62,58,48],[63,59,53,49],[64,60,54,50],[65,61,55,51],[67,63,57,52],[63,60,57,41],[64,59,53,42],[65,62,59,43],[65,61,55,44],[67,62,58,45],[65,62,57,46],[65,61,55,47]],
+      7: [[72,67,64,48],[70,67,64,49],[69,65,62,50],[71,67,64,51],[72,69,65,52],[72,69,65,53],[72,69,64,54],[71,67,62,55],[71,65,62,56],[72,69,64,45],[70,65,62,46],[71,65,62,47]],
+      8: [[72,67,63,48],[68,65,61,49],[68,65,62,50],[70,67,63,51],[70,67,61,52],[68,65,60,41],[69,63,60,42],[67,62,58,43],[68,63,60,44],[67,63,60,45],[70,65,62,46],[68,65,62,47]],
+      9: [[72,67,63,48],[68,65,61,49],[68,65,62,50],[71,67,63,51],[67,64,52],[68,65,60,41],[69,63,60,42],[67,62,59,43],[60,63,68,44],[67,63,60,45],[70,65,62,46],[71,65,62,47]],
+      10: [[67,63,62,48],[65,60,56,49],[68,65,60,50],[67,62,58,51],[67,61,58,52],[67,63,56,41],[63,60,57,42],[65,62,58,43],[67,63,60,44],[67,63,60,45],[63,60,56,46],[65,62,56,47]],
+      11: [[67,63,62,48],[67,63,58,49],[65,60,56,50],[67,62,58,51],[66,63,56,52],[67,63,56,41],[63,60,57,42],[67,62,58,43],[67,63,60,44],[67,63,60,45],[67,63,60,46],[67,63,62,47]],
+      12: [[65,63,58,48],[64,59,53,49],[68,65,60,50],[67,62,59,51],[66,62,56,40],[67,63,57,41],[63,60,57,42],[70,65,59,43],[67,63,60,44],[67,63,60,45],[65,61,56,46],[65,62,56,47]],
+      13: [[62,58,51,48],[63,59,53,49],[64,60,53,50],[65,61,55,51],[66,63,56,40],[67,63,57,41],[63,60,57,42],[64,59,53,43],[65,63,56,44],[65,60,57,45],[65,62,58,46],[64,62,57,47]],
+      17: [[55,52,48],[56,53,49],[57,54,50],[58,55,51],[59,56,52],[60,57,53],[61,58,54],[62,59,55],[63,60,56],[64,61,57],[65,62,58],[67,63,59]],
+      18: [[55,51,48],[56,52,49],[57,53,50],[58,54,51],[59,56,52],[60,56,53],[61,57,54],[62,58,55],[63,59,56],[64,60,57],[65,61,58],[67,62,59]],
+      19: [[59,55,52,48],[60,56,53,49],[61,57,54,50],[62,58,55,51],[63,59,56,52],[64,60,57,53],[65,61,58,54],[66,62,59,55],[67,63,60,56],[68,64,61,57],[69,65,62,58],[70,66,63,59]],
+      20: [[58,55,51,48],[59,56,52,49],[60,57,53,50],[61,58,54,51],[62,59,55,52],[63,60,56,53],[64,61,57,54],[65,62,58,55],[66,63,59,56],[67,64,60,57],[68,65,61,58],[69,66,62,59]],
+      21: [[62,59,52,48],[63,60,53,49],[64,61,54,50],[65,62,55,51],[66,63,56,52],[67,64,57,53],[68,66,58,54],[69,66,59,55],[70,68,60,56],[71,68,61,57],[72,70,62,58],[73,70,63,59]],
+      22: [[62,58,51,48],[63,59,52,49],[64,60,53,50],[65,61,54,51],[66,63,55,52],[67,63,57,53],[66,63,57,54],[67,63,56,43],[68,64,57,56],[69,65,58,57],[70,66,59,58],[71,67,60,59]],
+      23: [[66,62,59,48],[67,63,60,49],[68,64,61,50],[69,65,62,51],[70,66,63,52],[71,67,64,53],[72,68,65,54],[73,69,66,55],[74,70,67,56],[75,71,68,57],[76,72,69,58],[77,73,70,59]],
+    };
+
+    /* Interval-based fallback for sets without exact data */
     const _noteVal = { C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11 };
 
     const _qualityIntervals = {
@@ -2673,6 +2700,28 @@ return
       return notes;
     }
 
+    function _getNotesForKey(key) {
+      const keyboard = key.closest('.keyboard');
+      if (!keyboard) return null;
+
+      const chordIndex = parseInt(key.dataset.chordIndex, 10);
+      if (isNaN(chordIndex)) return null;
+
+      const setNumber = parseInt(keyboard.dataset.setNumber, 10);
+      const transposition = parseInt(keyboard.dataset.transposition, 10) || 0;
+
+      /* Use exact notes from the J-6 manual when available */
+      const setNotes = _exactNotes[setNumber];
+      if (setNotes && setNotes[chordIndex]) {
+        return setNotes[chordIndex].map(n => n + transposition);
+      }
+
+      /* Fallback: parse chord name using interval table */
+      const label = key.querySelector('.chord-label');
+      if (!label || !label.textContent.trim()) return null;
+      return _parseChordNotes(label.textContent.trim());
+    }
+
     /* ── Web Audio playback ──────────────────────────────────────── */
     let _audioCtx = null;
     function _ctx() {
@@ -2707,11 +2756,9 @@ return
     function _handleKeyClick(e) {
       const key = e.target.closest('.white-key, .black-key');
       if (!key) return;
-      const label = key.querySelector('.chord-label');
-      if (!label || !label.textContent.trim()) return;
 
-      const notes = _parseChordNotes(label.textContent.trim());
-      if (notes) _playNotes(notes);
+      const notes = _getNotesForKey(key);
+      if (notes && notes.length) _playNotes(notes);
 
       /* visual feedback */
       key.classList.add('active');
