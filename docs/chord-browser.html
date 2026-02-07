@@ -323,10 +323,12 @@
       background: var(--panel);
       border: 2px solid var(--accent);
       border-radius: 12px;
-      padding: 16px;
+      padding: 12px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
       z-index: 1000;
       pointer-events: none;
+      max-width: calc(100vw - 20px);
+      overflow: hidden;
     }
 
     #chord-popup.visible {
@@ -336,15 +338,31 @@
     #chord-popup-canvas {
       display: block;
       border-radius: 6px;
+      max-width: 100%;
+      height: auto;
     }
 
     #chord-popup-notes {
-      margin-top: 12px;
+      margin-top: 8px;
       text-align: center;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--accent);
       letter-spacing: 0.5px;
+      overflow-wrap: break-word;
+    }
+
+    /* Responsive popup for mobile */
+    @media (max-width: 767px) {
+      #chord-popup {
+        padding: 8px;
+        border-radius: 8px;
+      }
+
+      #chord-popup-notes {
+        font-size: 11px;
+        margin-top: 6px;
+      }
     }
   </style>
 </head>
@@ -4037,8 +4055,33 @@ return
       const canvas = document.getElementById('chord-popup-canvas');
       const notesDiv = document.getElementById('chord-popup-notes');
 
-      // Draw the 5-octave keyboard with highlighted notes
-      _drawPopupKeyboard(canvas, notes);
+      // Calculate responsive dimensions
+      const screenWidth = window.innerWidth;
+      let numOctaves, canvasWidth, canvasHeight;
+
+      if (screenWidth < 480) {
+        // Mobile: 3 octaves, smaller keys
+        numOctaves = 3;
+        canvasWidth = Math.min(screenWidth - 40, 420); // 3 octaves * 7 keys * 20px
+        canvasHeight = 60;
+      } else if (screenWidth < 768) {
+        // Tablet: 4 octaves
+        numOctaves = 4;
+        canvasWidth = Math.min(screenWidth - 40, 700); // 4 octaves * 7 keys * 25px
+        canvasHeight = 70;
+      } else {
+        // Desktop: 5 octaves, full size
+        numOctaves = 5;
+        canvasWidth = 1050; // 5 octaves * 7 keys * 30px
+        canvasHeight = 80;
+      }
+
+      // Set canvas size
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
+
+      // Draw the keyboard with highlighted notes
+      _drawPopupKeyboard(canvas, notes, numOctaves);
 
       // Display note names (sorted from lowest to highest)
       const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -4050,24 +4093,36 @@ return
       });
       notesDiv.textContent = noteNamesArray.join(' • ');
 
-      // Position the popup above the cursor (so it doesn't hide the keybed)
+      // Position the popup
       const x = mouseEvent.clientX;
       const y = mouseEvent.clientY;
-      const popupWidth = 1082; // 1050 + padding
-      const popupHeight = 130; // approximate
+      const popupRect = popup.getBoundingClientRect();
+      const popupWidth = canvasWidth + 30; // canvas + padding
+      const popupHeight = canvasHeight + 50; // canvas + notes + padding
 
-      // Position above the cursor, centered horizontally
-      let left = x - popupWidth / 2;
-      let top = y - popupHeight - 20; // 20px gap above cursor
+      // Center horizontally on mobile, otherwise follow cursor
+      let left, top;
+      if (screenWidth < 768) {
+        // Center horizontally on mobile
+        left = Math.max(10, (screenWidth - popupWidth) / 2);
+        // Position above touch point if possible, otherwise below
+        top = y - popupHeight - 20;
+        if (top < 10) {
+          top = Math.min(y + 60, screenWidth - popupHeight - 10);
+        }
+      } else {
+        // Desktop: position above cursor, centered horizontally
+        left = x - popupWidth / 2;
+        top = y - popupHeight - 20;
 
-      // Ensure popup stays within viewport
-      if (left < 10) left = 10;
-      if (left + popupWidth > window.innerWidth - 10) {
-        left = window.innerWidth - popupWidth - 10;
-      }
-      if (top < 10) {
-        // If not enough space above, show below instead
-        top = y + 20;
+        // Keep within viewport
+        if (left < 10) left = 10;
+        if (left + popupWidth > screenWidth - 10) {
+          left = screenWidth - popupWidth - 10;
+        }
+        if (top < 10) {
+          top = y + 20;
+        }
       }
 
       popup.style.left = `${left}px`;
@@ -4080,7 +4135,7 @@ return
       popup.classList.remove('visible');
     }
 
-    function _drawPopupKeyboard(canvas, midiNotes) {
+    function _drawPopupKeyboard(canvas, midiNotes, numOctaves) {
       const ctx = canvas.getContext('2d');
       const width = canvas.width;
       const height = canvas.height;
@@ -4088,13 +4143,21 @@ return
       // Clear canvas
       ctx.clearRect(0, 0, width, height);
 
-      // Draw 5 octaves (35 white keys)
-      const whiteKeyWidth = 30;
-      const blackKeyWidth = 18;
+      // Calculate key dimensions based on canvas width
+      const numWhiteKeys = numOctaves * 7;
+      const whiteKeyWidth = width / numWhiteKeys;
+      const blackKeyWidth = whiteKeyWidth * 0.6;
       const whiteKeyHeight = height;
       const blackKeyHeight = height * 0.6;
-      // Black keys positioned exactly in the middle between white keys
-      const blackOffsets = [30, 60, 120, 150, 180]; // C# between C-D, D# between D-E, F# between F-G, G# between G-A, A# between A-B
+
+      // Black key offsets (centered between white keys)
+      const blackOffsets = [
+        whiteKeyWidth,           // C# between C-D
+        whiteKeyWidth * 2,       // D# between D-E
+        whiteKeyWidth * 4,       // F# between F-G
+        whiteKeyWidth * 5,       // G# between G-A
+        whiteKeyWidth * 6        // A# between A-B
+      ];
 
       // Convert MIDI notes to set for quick lookup
       const notesSet = new Set(midiNotes);
@@ -4105,15 +4168,15 @@ return
       const centerNote = Math.floor((minNote + maxNote) / 2);
       const centerOctave = Math.floor(centerNote / 12);
 
-      // Display 5 octaves centered around the chord, starting from at least octave 2 (MIDI 36 = C2)
-      const startOctave = Math.max(3, centerOctave - 2);
+      // Display octaves centered around the chord, starting from at least octave 2 (MIDI 36 = C2)
+      const startOctave = Math.max(3, centerOctave - Math.floor(numOctaves / 2));
       const startMidi = startOctave * 12;
 
       // Draw white keys
       const whiteNoteOffsets = [0, 2, 4, 5, 7, 9, 11]; // C, D, E, F, G, A, B
       let whiteKeyIndex = 0;
 
-      for (let octave = 0; octave < 5; octave++) {
+      for (let octave = 0; octave < numOctaves; octave++) {
         for (let i = 0; i < 7; i++) {
           const midi = startMidi + octave * 12 + whiteNoteOffsets[i];
           const x = whiteKeyIndex * whiteKeyWidth;
@@ -4131,7 +4194,7 @@ return
       // Draw black keys (positioned exactly between white keys)
       const blackNotes = [1, 3, 6, 8, 10]; // C#, D#, F#, G#, A#
 
-      for (let octave = 0; octave < 5; octave++) {
+      for (let octave = 0; octave < numOctaves; octave++) {
         const startX = octave * 7 * whiteKeyWidth;
         for (let i = 0; i < 5; i++) {
           const midi = startMidi + octave * 12 + blackNotes[i];
