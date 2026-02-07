@@ -164,6 +164,13 @@
       background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
     }
 
+    .white-key { cursor: pointer; }
+
+    .white-key.active {
+      background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%) !important;
+      color: #fff;
+    }
+
     .black-keys {
       position: absolute;
       top: 0;
@@ -203,6 +210,13 @@
 
     .black-key:hover {
       background: linear-gradient(180deg, #475569 0%, #334155 100%);
+    }
+
+    .black-key { cursor: pointer; }
+
+    .black-key.active {
+      background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%) !important;
+      color: #fff;
     }
 
     /* Position black keys between white keys (at right edge of each slot) */
@@ -2486,6 +2500,225 @@ return
 
     renderBrowser();
     search();
+
+    /* ── Chord Playback ───────────────────────────────────────────── */
+    const _noteVal = { C:0,'C#':1,Db:1,D:2,'D#':3,Eb:3,E:4,F:5,'F#':6,Gb:6,G:7,'G#':8,Ab:8,A:9,'A#':10,Bb:10,B:11 };
+
+    const _qualityIntervals = {
+      '':       [0,4,7],
+      'M':      [0,4,7],
+      'maj':    [0,4,7],
+      'm':      [0,3,7],
+      'min':    [0,3,7],
+      'dim':    [0,3,6],
+      'Dim':    [0,3,6],
+      'aug':    [0,4,8],
+      'sus2':   [0,2,7],
+      'sus4':   [0,5,7],
+      'sus':    [0,5,7],
+      '5':      [0,7],
+
+      '6':       [0,4,7,9],
+      'm6':      [0,3,7,9],
+      '6/9':     [0,4,7,9,14],
+      'M6/9':    [0,4,7,9,14],
+      'm6/9':    [0,3,7,9,14],
+      '6sus2':   [0,2,7,9],
+      '6sus4':   [0,5,7,9],
+      '6sus2b5': [0,2,6,9],
+
+      '7':       [0,4,7,10],
+      'M7':      [0,4,7,11],
+      'maj7':    [0,4,7,11],
+      'm7':      [0,3,7,10],
+      'dim7':    [0,3,6,9],
+      'm7b5':    [0,3,6,10],
+      'aug7':    [0,4,8,10],
+      'M7#5':    [0,4,8,11],
+      '7sus4':   [0,5,7,10],
+      '7sus2':   [0,2,7,10],
+      '7sus':    [0,5,7,10],
+      'sus7':    [0,5,7,10],
+      'dimM7':   [0,3,6,11],
+      'DimM7':   [0,3,6,11],
+      '7#5':     [0,4,8,10],
+      '7#9':     [0,4,7,10,15],
+      '7#9#5':   [0,4,8,10,15],
+      '7(13)':   [0,4,7,10,21],
+      '7add9':   [0,4,7,10,14],
+      '7alt':    [0,4,6,10,13],
+      '7b13':    [0,4,7,10,20],
+      '7b9':     [0,4,7,10,13],
+      'M7#11':   [0,4,7,11,18],
+      'M7(13)':  [0,4,7,11,21],
+      'M7add6':  [0,4,7,9,11],
+      'M7b5':    [0,4,6,11],
+      'M7sus2':  [0,2,7,11],
+      'M7/9':    [0,4,7,11,14],
+      'maj7/9':  [0,4,7,11,14],
+
+      '9':       [0,4,7,10,14],
+      'M9':      [0,4,7,11,14],
+      'maj9':    [0,4,7,11,14],
+      'm9':      [0,3,7,10,14],
+      'add9':    [0,4,7,14],
+      'madd9':   [0,3,7,14],
+      'mAdd9':   [0,3,7,14],
+      'add2':    [0,2,4,7],
+      'Madd2':   [0,2,4,7],
+      'Madd4':   [0,4,5,7],
+      '9#11':    [0,4,7,10,14,18],
+      '9sus':    [0,5,7,10,14],
+      'sus9':    [0,5,7,10,14],
+      'M9#11':   [0,4,7,11,14,18],
+      'M9(no 3)':[0,7,11,14],
+      'm9/11':   [0,3,7,10,14,17],
+      'm7/9':    [0,3,7,10,14],
+      'm7b5/9':  [0,3,6,10,14],
+
+      '11':      [0,4,7,10,14,17],
+      'm11':     [0,3,7,10,14,17],
+      'add11':   [0,4,7,17],
+      'madd11':  [0,3,7,17],
+      '11sus':   [0,5,7,10,17],
+      '11sus2':  [0,2,7,10,17],
+      'sus11':   [0,5,7,10,17],
+      'm11b5':   [0,3,6,10,14,17],
+      'm7(11)':  [0,3,7,10,17],
+      'm7/11':   [0,3,7,10,17],
+      'dim11':   [0,3,6,9,17],
+
+      '13':      [0,4,7,10,14,21],
+      'M13':     [0,4,7,11,14,21],
+      'maj13':   [0,4,7,11,14,21],
+      'm13':     [0,3,7,10,14,21],
+      'mM13':    [0,3,7,11,14,21],
+      'M13(no 3)':[0,7,11,14,21],
+      '13b9':    [0,4,7,10,13,21],
+      'add13':   [0,4,7,9],
+      'sus13':   [0,5,7,10,21],
+      'sus9/13': [0,5,7,10,14,21],
+      'm7add13': [0,3,7,10,21],
+      'm7b13':   [0,3,7,10,20],
+
+      'aug#9':   [0,4,8,10,15],
+      'addb9':   [0,4,7,13],
+      'mb9':     [0,3,7,13],
+      'mb6':     [0,3,7,8],
+      'mb13':    [0,3,7,20],
+      'Mb7':     [0,4,7,10],
+      'Mb5#9':   [0,4,6,15],
+      '5b9':     [0,7,13],
+      '5add9b13':[0,7,14,20],
+      'sus4b9':  [0,5,7,13],
+      'dim#5':   [0,3,8],
+      'm6addb13':[0,3,7,9,20],
+      'm7add6':  [0,3,7,9,10],
+    };
+
+    function _extractNoteName(s) {
+      if (!s) return null;
+      if (s.length >= 2 && (s[1] === '#' || s[1] === 'b')) return s.slice(0,2);
+      if (s[0] >= 'A' && s[0] <= 'G') return s.slice(0,1);
+      return null;
+    }
+
+    function _noteToMidi(noteName) {
+      const n = normalizeNote(noteName);
+      return _noteVal[n] ?? null;
+    }
+
+    function _parseChordNotes(chordName) {
+      if (!chordName) return null;
+
+      /* separate slash‑chord bass */
+      let main = chordName, bassName = null;
+      const si = chordName.lastIndexOf('/');
+      if (si > 0) {
+        const afterSlash = chordName.slice(si + 1);
+        const bn = _extractNoteName(afterSlash);
+        if (bn && bn.length === afterSlash.length && _noteToMidi(bn) !== null) {
+          bassName = bn;
+          main = chordName.slice(0, si);
+        }
+      }
+
+      /* root */
+      const root = extractNote(main);
+      if (!root) return null;
+      const rootVal = _noteToMidi(root);
+      if (rootVal === null) return null;
+
+      const quality = main.slice(root.length);
+      let intervals = _qualityIntervals[quality];
+      if (!intervals) intervals = [0,4,7]; /* fallback: major triad */
+
+      /* build MIDI notes – root at C3 (48) */
+      const base = 48 + rootVal;
+      let notes = intervals.map(i => base + i);
+
+      /* bass note for slash chords */
+      if (bassName) {
+        const bv = _noteToMidi(bassName);
+        if (bv !== null) {
+          let bm = 36 + bv;           /* start at C2 */
+          while (bm >= notes[0]) bm -= 12;
+          if (bm < 36) bm += 12;
+          /* remove duplicate from chord body if present */
+          notes = notes.filter(n => n % 12 !== bm % 12);
+          notes = [bm, ...notes];
+        }
+      }
+
+      return notes;
+    }
+
+    /* ── Web Audio playback ──────────────────────────────────────── */
+    let _audioCtx = null;
+    function _ctx() {
+      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (_audioCtx.state === 'suspended') _audioCtx.resume();
+      return _audioCtx;
+    }
+
+    function _midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+    function _playNotes(midiNotes, dur) {
+      dur = dur || 1.2;
+      const ctx = _ctx();
+      const now = ctx.currentTime;
+      const vol = 0.22 / Math.sqrt(midiNotes.length);
+      midiNotes.forEach(m => {
+        const osc = ctx.createOscillator();
+        const g   = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = _midiToFreq(m);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(vol, now + 0.03);
+        g.gain.setValueAtTime(vol, now + dur * 0.6);
+        g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + dur);
+      });
+    }
+
+    /* ── Click handling (event delegation) ───────────────────────── */
+    function _handleKeyClick(e) {
+      const key = e.target.closest('.white-key, .black-key');
+      if (!key) return;
+      const label = key.querySelector('.chord-label');
+      if (!label || !label.textContent.trim()) return;
+
+      const notes = _parseChordNotes(label.textContent.trim());
+      if (notes) _playNotes(notes);
+
+      /* visual feedback */
+      key.classList.add('active');
+      setTimeout(() => key.classList.remove('active'), 300);
+    }
+
+    document.addEventListener('click', _handleKeyClick);
   </script>
 </body>
 </html>
