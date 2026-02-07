@@ -4153,24 +4153,36 @@ return
       const notes = _getNotesForKey(key);
       if (!notes || !notes.length) return;
 
-      // Show popup on mousedown, hide on mouseup
-      if (e.type === 'mousedown') {
-        _showChordPopup(notes, e);
+      // Prevent default touch behavior to avoid double-firing on mobile
+      if (e.type.startsWith('touch')) {
+        e.preventDefault();
+      }
+
+      // Show popup on mousedown/touchstart, hide on mouseup/touchend
+      if (e.type === 'mousedown' || e.type === 'touchstart') {
+        // Get coordinates from touch or mouse event
+        const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+
+        _showChordPopup(notes, { clientX, clientY });
         _playNotes(notes);
 
         /* visual feedback */
         key.classList.add('active');
-      } else if (e.type === 'mouseup') {
+      } else if (e.type === 'mouseup' || e.type === 'touchend' || e.type === 'touchcancel') {
         _hideChordPopup();
         key.classList.remove('active');
       }
     }
 
-    // Listen for both mousedown and mouseup
+    // Listen for both mouse and touch events
     document.addEventListener('mousedown', _handleKeyClick);
     document.addEventListener('mouseup', _handleKeyClick);
+    document.addEventListener('touchstart', _handleKeyClick, { passive: false });
+    document.addEventListener('touchend', _handleKeyClick);
+    document.addEventListener('touchcancel', _handleKeyClick);
 
-    // Hide popup if mouse leaves the window
+    // Hide popup if mouse/touch leaves the window
     document.addEventListener('mouseleave', _hideChordPopup);
   </script>
 </body>
