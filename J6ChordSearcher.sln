@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionIt
 	ProjectSection(SolutionItems) = preProject
 		docs\chord-browser.html = docs\chord-browser.html
 		docs\j6-chords.csv = docs\j6-chords.csv
+		docs\midi-display.html = docs\midi-display.html
 	EndProjectSection
 EndProject
 Global
