@@ -364,6 +364,70 @@
         margin-top: 6px;
       }
     }
+
+    /* Note source toggle (J6 / Interval) */
+    .transposer-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .transposer-info .summary {
+      margin: 0;
+    }
+
+    .note-source-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .toggle-label {
+      color: var(--muted);
+      transition: color 150ms;
+    }
+
+    .toggle-label.active {
+      color: var(--accent);
+    }
+
+    .note-source-switch {
+      position: relative;
+      width: 28px;
+      height: 16px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 150ms;
+      margin: 0;
+      flex-shrink: 0;
+      border: none;
+      outline: none;
+      padding: 0;
+    }
+
+    .note-source-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      transition: transform 150ms;
+    }
+
+    .note-source-switch:checked::after {
+      transform: translateX(12px);
+    }
   </style>
 </head>
 <body>
@@ -3599,6 +3663,7 @@
     const chordSets = parseChordSets(rawData).map((set, index) => ({ id: index, ...set }));
     const browserState = new Map(chordSets.map(set => [set.id, 0]));
     const octaveState = new Map(chordSets.map(set => [set.id, 0]));
+    const noteSourceState = new Map(chordSets.map(set => [set.id, 'j6']));
 
     function parseChordSets(raw) {
       let text = raw.trim();
@@ -3723,12 +3788,23 @@
           <span class="badge">+${transposition} st</span>
         </div>`;
 
+      const noteSource = noteSourceState.get(set.id) ?? 'j6';
+      const isJ6 = noteSource === 'j6';
+      const toggleHtml = `<label class="note-source-toggle">
+          <span class="toggle-label${isJ6 ? ' active' : ''}">J6</span>
+          <input type="checkbox" class="note-source-switch" data-id="${set.id}"${!isJ6 ? ' checked' : ''} />
+          <span class="toggle-label${!isJ6 ? ' active' : ''}">Int</span>
+        </label>`;
+
       const slider = includeTransposer
         ? `<div>
             <input class="transposer" type="range" min="0" max="11" value="${transposition}" data-id="${set.id}" />
-            <div class="summary">Drag to transpose this row</div>
+            <div class="transposer-info">
+              <span class="summary">Drag to transpose this row</span>
+              ${toggleHtml}
+            </div>
           </div>`
-        : "";
+        : `<div class="transposer-info" style="justify-content:flex-end">${toggleHtml}</div>`;
 
       // Piano key layout:
       // White keys (indices): C=0, D=2, E=4, F=5, G=7, A=9, B=11
@@ -3809,6 +3885,23 @@
       }
     });
 
+    document.addEventListener('change', evt => {
+      if (evt.target.classList.contains('note-source-switch')) {
+        const id = Number(evt.target.dataset.id);
+        const mode = evt.target.checked ? 'int' : 'j6';
+        noteSourceState.set(id, mode);
+        document.querySelectorAll(`.note-source-switch[data-id="${id}"]`).forEach(sw => {
+          sw.checked = evt.target.checked;
+          const label = sw.closest('.note-source-toggle');
+          if (label) {
+            const labels = label.querySelectorAll('.toggle-label');
+            labels[0].classList.toggle('active', !sw.checked);
+            labels[1].classList.toggle('active', sw.checked);
+          }
+        });
+      }
+    });
+
     searchBox.addEventListener("input", search);
     clearBtn.addEventListener("click", () => {
       searchBox.value = "";
@@ -3886,6 +3979,9 @@
       'sus4':   [0,5,7],
       'sus':    [0,5,7],
       '5':      [0,7],
+      'oct':    [0,12],
+      '4th':    [0,5],
+      '5th':    [0,7],
 
       '6':       [0,4,7,9],
       'm6':      [0,3,7,9],
@@ -4056,10 +4152,13 @@
       const octave = !isNaN(keyboardId) ? (octaveState.get(keyboardId) ?? 0) : 0;
       const octaveShift = octave * 12;
 
-      /* Use exact notes from the J-6 manual when available */
-      const setNotes = _exactNotes[setNumber];
-      if (setNotes && setNotes[chordIndex]) {
-        return setNotes[chordIndex].map(n => n + transposition + octaveShift);
+      /* Use exact notes from the J-6 manual when available and J6 mode is selected */
+      const source = !isNaN(keyboardId) ? (noteSourceState.get(keyboardId) ?? 'j6') : 'j6';
+      if (source === 'j6') {
+        const setNotes = _exactNotes[setNumber];
+        if (setNotes && setNotes[chordIndex]) {
+          return setNotes[chordIndex].map(n => n + transposition + octaveShift);
+        }
       }
 
       /* Fallback: parse chord name using interval table */
