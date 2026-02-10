@@ -4384,10 +4384,19 @@
       const d = _synth.decay;
       const s = _synth.sustain;
       const sustainLevel = Math.max(vol * s, _MIN_GAIN);
+      const attackEnd = t0 + a;
 
       g.gain.setValueAtTime(_MIN_GAIN, t0);
-      g.gain.linearRampToValueAtTime(vol, t0 + Math.max(a, 0.001));
-      g.gain.linearRampToValueAtTime(sustainLevel, t0 + Math.max(a, 0.001) + Math.max(d, 0.001));
+      if (a > 0) {
+        g.gain.linearRampToValueAtTime(vol, attackEnd);
+      } else {
+        g.gain.setValueAtTime(vol, t0);
+      }
+      if (d > 0) {
+        g.gain.linearRampToValueAtTime(sustainLevel, attackEnd + d);
+      } else {
+        g.gain.setValueAtTime(sustainLevel, attackEnd);
+      }
     }
 
     function _applyFilterNoteOn(filt, t0) {
@@ -4396,10 +4405,19 @@
       const fD = _synth.filterDecay;
       const fS = _synth.filterSustain;
       const sustainFreq = Math.max(_MIN_FILTER_FREQ + (cutoff - _MIN_FILTER_FREQ) * fS, _MIN_FILTER_FREQ);
+      const attackEnd = t0 + fA;
 
       filt.frequency.setValueAtTime(_MIN_FILTER_FREQ, t0);
-      filt.frequency.linearRampToValueAtTime(cutoff, t0 + Math.max(fA, 0.001));
-      filt.frequency.linearRampToValueAtTime(sustainFreq, t0 + Math.max(fA, 0.001) + Math.max(fD, 0.001));
+      if (fA > 0) {
+        filt.frequency.linearRampToValueAtTime(cutoff, attackEnd);
+      } else {
+        filt.frequency.setValueAtTime(cutoff, t0);
+      }
+      if (fD > 0) {
+        filt.frequency.linearRampToValueAtTime(sustainFreq, attackEnd + fD);
+      } else {
+        filt.frequency.setValueAtTime(sustainFreq, attackEnd);
+      }
     }
 
     function _releaseVoices() {
@@ -4455,20 +4473,19 @@
       const vol = 0.22 / Math.sqrt(midiNotes.length);
       const sortedNotes = midiNotes.slice().sort((a, b) => a - b);
       sortedNotes.forEach((m, i) => {
-        const offset = i * strumDelay;
+        const t0 = now + i * strumDelay;
         const osc = ctx.createOscillator();
         const g   = ctx.createGain();
         const filt = ctx.createBiquadFilter();
         osc.type = _synth.wave;
         osc.frequency.value = _midiToFreq(m);
-        g.gain.setValueAtTime(_MIN_GAIN, now);
-        _applyNoteOn(g, vol, now + offset);
+        g.gain.setValueAtTime(_MIN_GAIN, t0);
+        _applyNoteOn(g, vol, t0);
         filt.type = 'lowpass';
         filt.Q.value = _synth.filterQ;
-        filt.frequency.setValueAtTime(_MIN_FILTER_FREQ, now);
-        _applyFilterNoteOn(filt, now + offset);
+        _applyFilterNoteOn(filt, t0);
         osc.connect(g).connect(filt).connect(ctx.destination);
-        osc.start(now);
+        osc.start(t0);
         _activeVoices.push({ osc, gain: g, filter: filt });
       });
     }
