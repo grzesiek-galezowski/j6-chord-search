@@ -4339,20 +4339,19 @@
       const d = _synth.decay;
       const s = _synth.sustain;
       const r = _synth.release;
+      const sustainLevel = Math.max(vol * s, 0.001);
       const peakEnd = t0 + a;
-      const sustainLevel = vol * s;
       const decayEnd = peakEnd + d;
-      const sustainEnd = t0 + dur - r;
+      const sustainEnd = Math.max(t0 + dur - r, decayEnd);
+      const endTime = t0 + dur;
 
       g.gain.setValueAtTime(0, t0);
       g.gain.linearRampToValueAtTime(vol, peakEnd);
-      if (d > 0) {
-        g.gain.linearRampToValueAtTime(Math.max(sustainLevel, 0.001), decayEnd);
-      }
+      g.gain.linearRampToValueAtTime(sustainLevel, decayEnd);
       if (sustainEnd > decayEnd) {
-        g.gain.setValueAtTime(Math.max(sustainLevel, 0.001), sustainEnd);
+        g.gain.setValueAtTime(sustainLevel, sustainEnd);
       }
-      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      g.gain.exponentialRampToValueAtTime(0.001, endTime);
     }
 
     function _connectChain(osc, g, ctx) {
