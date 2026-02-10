@@ -4207,7 +4207,9 @@
       const ctx = _ctx();
       const now = ctx.currentTime;
       const vol = 0.22 / Math.sqrt(midiNotes.length);
-      midiNotes.forEach((m, i) => {
+      // Strum from low to high pitch: sort a copy so behavior is consistent across sources.
+      const sortedNotes = midiNotes.slice().sort((a, b) => a - b);
+      sortedNotes.forEach((m, i) => {
         const offset = i * strumDelay;
         const osc = ctx.createOscillator();
         const g   = ctx.createGain();
