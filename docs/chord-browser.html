@@ -428,6 +428,67 @@
     .note-source-switch:checked::after {
       transform: translateX(12px);
     }
+
+    /* ── Synth controls ─────────────────────────────────────────── */
+    .synth-panel {
+      padding: 14px 24px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px 24px;
+      align-items: end;
+      font-size: 13px;
+    }
+    .synth-panel label {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      color: var(--muted);
+    }
+    .synth-panel label span {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .synth-panel label .synth-val {
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      min-width: 3.2em;
+      text-align: right;
+    }
+    .synth-panel select,
+    .synth-panel input[type="range"] {
+      accent-color: var(--accent);
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 6px;
+      font-size: 13px;
+    }
+    .synth-panel input[type="range"] {
+      width: 100px;
+    }
+    .synth-panel .synth-group-title {
+      font-weight: 600;
+      color: var(--text);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding-bottom: 4px;
+      align-self: end;
+    }
+    .synth-panel .synth-sep {
+      width: 1px;
+      align-self: stretch;
+      background: var(--border);
+    }
+    #synthReset {
+      padding: 6px 12px;
+      font-size: 12px;
+      align-self: end;
+    }
   </style>
 </head>
 <body>
@@ -436,6 +497,54 @@
     <h1>Roland J-6 Chord Sequence Search and Browser</h1>
     <p>Client-side search and browse of all chord sets. No server required.</p>
   </header>
+
+  <div class="synth-panel" id="synthPanel">
+    <span class="synth-group-title">Oscillator</span>
+    <label>
+      <span>Wave</span>
+      <select id="synthWave">
+        <option value="triangle">Triangle</option>
+        <option value="sawtooth">Sawtooth</option>
+        <option value="square">Square</option>
+        <option value="sine">Sine</option>
+      </select>
+    </label>
+
+    <div class="synth-sep"></div>
+    <span class="synth-group-title">Envelope</span>
+
+    <label>
+      <span>Attack <span class="synth-val" id="synthAVal">0.03</span></span>
+      <input type="range" id="synthAttack" min="0.001" max="1" step="0.001" value="0.03" />
+    </label>
+    <label>
+      <span>Decay <span class="synth-val" id="synthDVal">0.00</span></span>
+      <input type="range" id="synthDecay" min="0" max="1" step="0.01" value="0" />
+    </label>
+    <label>
+      <span>Sustain <span class="synth-val" id="synthSVal">1.00</span></span>
+      <input type="range" id="synthSustain" min="0" max="1" step="0.01" value="1" />
+    </label>
+    <label>
+      <span>Release <span class="synth-val" id="synthRVal">0.48</span></span>
+      <input type="range" id="synthRelease" min="0.01" max="3" step="0.01" value="0.48" />
+    </label>
+
+    <div class="synth-sep"></div>
+    <span class="synth-group-title">Filter</span>
+
+    <label>
+      <span>Cutoff <span class="synth-val" id="synthCutoffVal">20000</span></span>
+      <input type="range" id="synthCutoff" min="100" max="20000" step="1" value="20000" />
+    </label>
+    <label>
+      <span>Q <span class="synth-val" id="synthQVal">0.5</span></span>
+      <input type="range" id="synthQ" min="0.1" max="20" step="0.1" value="0.5" />
+    </label>
+
+    <div class="synth-sep"></div>
+    <button id="synthReset">Reset</button>
+  </div>
 
   <div class="container">
     <section class="controls">
@@ -4172,6 +4281,50 @@
     }
 
     /* ── Web Audio playback ──────────────────────────────────────── */
+    const _synthDefaults = {
+      wave: 'triangle',
+      attack: 0.03,
+      decay: 0,
+      sustain: 1,
+      release: 0.48,
+      filterCutoff: 20000,
+      filterQ: 0.5
+    };
+
+    const _synth = Object.assign({}, _synthDefaults);
+
+    function _synthResetControls() {
+      Object.assign(_synth, _synthDefaults);
+      document.getElementById('synthWave').value = _synth.wave;
+      document.getElementById('synthAttack').value = _synth.attack;
+      document.getElementById('synthDecay').value = _synth.decay;
+      document.getElementById('synthSustain').value = _synth.sustain;
+      document.getElementById('synthRelease').value = _synth.release;
+      document.getElementById('synthCutoff').value = _synth.filterCutoff;
+      document.getElementById('synthQ').value = _synth.filterQ;
+      _synthUpdateLabels();
+    }
+
+    function _synthUpdateLabels() {
+      document.getElementById('synthAVal').textContent = Number(_synth.attack).toFixed(2);
+      document.getElementById('synthDVal').textContent = Number(_synth.decay).toFixed(2);
+      document.getElementById('synthSVal').textContent = Number(_synth.sustain).toFixed(2);
+      document.getElementById('synthRVal').textContent = Number(_synth.release).toFixed(2);
+      document.getElementById('synthCutoffVal').textContent = Math.round(_synth.filterCutoff);
+      document.getElementById('synthQVal').textContent = Number(_synth.filterQ).toFixed(1);
+    }
+
+    (function _initSynthControls() {
+      document.getElementById('synthWave').addEventListener('input', e => { _synth.wave = e.target.value; });
+      document.getElementById('synthAttack').addEventListener('input', e => { _synth.attack = +e.target.value; _synthUpdateLabels(); });
+      document.getElementById('synthDecay').addEventListener('input', e => { _synth.decay = +e.target.value; _synthUpdateLabels(); });
+      document.getElementById('synthSustain').addEventListener('input', e => { _synth.sustain = +e.target.value; _synthUpdateLabels(); });
+      document.getElementById('synthRelease').addEventListener('input', e => { _synth.release = +e.target.value; _synthUpdateLabels(); });
+      document.getElementById('synthCutoff').addEventListener('input', e => { _synth.filterCutoff = +e.target.value; _synthUpdateLabels(); });
+      document.getElementById('synthQ').addEventListener('input', e => { _synth.filterQ = +e.target.value; _synthUpdateLabels(); });
+      document.getElementById('synthReset').addEventListener('click', _synthResetControls);
+    })();
+
     let _audioCtx = null;
     function _ctx() {
       if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -4181,6 +4334,34 @@
 
     function _midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
 
+    function _applyEnvelope(g, vol, t0, dur) {
+      const a = _synth.attack;
+      const d = _synth.decay;
+      const s = _synth.sustain;
+      const r = _synth.release;
+      const sustainLevel = Math.max(vol * s, 0.001);
+      const peakEnd = t0 + a;
+      const decayEnd = peakEnd + d;
+      const sustainEnd = Math.max(t0 + dur - r, decayEnd);
+      const endTime = t0 + dur;
+
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(vol, peakEnd);
+      g.gain.linearRampToValueAtTime(sustainLevel, decayEnd);
+      if (sustainEnd > decayEnd) {
+        g.gain.setValueAtTime(sustainLevel, sustainEnd);
+      }
+      g.gain.exponentialRampToValueAtTime(0.001, endTime);
+    }
+
+    function _connectChain(osc, g, ctx) {
+      const filt = ctx.createBiquadFilter();
+      filt.type = 'lowpass';
+      filt.frequency.value = _synth.filterCutoff;
+      filt.Q.value = _synth.filterQ;
+      osc.connect(g).connect(filt).connect(ctx.destination);
+    }
+
     function _playNotes(midiNotes, dur) {
       dur = dur || 1.2;
       const ctx = _ctx();
@@ -4189,13 +4370,10 @@
       midiNotes.forEach(m => {
         const osc = ctx.createOscillator();
         const g   = ctx.createGain();
-        osc.type = 'triangle';
+        osc.type = _synth.wave;
         osc.frequency.value = _midiToFreq(m);
-        g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(vol, now + 0.03);
-        g.gain.setValueAtTime(vol, now + dur * 0.6);
-        g.gain.exponentialRampToValueAtTime(0.001, now + dur);
-        osc.connect(g).connect(ctx.destination);
+        _applyEnvelope(g, vol, now, dur);
+        _connectChain(osc, g, ctx);
         osc.start(now);
         osc.stop(now + dur);
       });
@@ -4213,13 +4391,10 @@
         const offset = i * strumDelay;
         const osc = ctx.createOscillator();
         const g   = ctx.createGain();
-        osc.type = 'triangle';
+        osc.type = _synth.wave;
         osc.frequency.value = _midiToFreq(m);
-        g.gain.setValueAtTime(0, now + offset);
-        g.gain.linearRampToValueAtTime(vol, now + offset + 0.03);
-        g.gain.setValueAtTime(vol, now + offset + dur * 0.6);
-        g.gain.exponentialRampToValueAtTime(0.001, now + offset + dur);
-        osc.connect(g).connect(ctx.destination);
+        _applyEnvelope(g, vol, now + offset, dur);
+        _connectChain(osc, g, ctx);
         osc.start(now + offset);
         osc.stop(now + offset + dur);
       });
