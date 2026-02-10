@@ -4201,6 +4201,30 @@
       });
     }
 
+    function _playNotesStrummed(midiNotes, dur) {
+      dur = dur || 1.2;
+      const strumDelay = 0.07;
+      const ctx = _ctx();
+      const now = ctx.currentTime;
+      const vol = 0.22 / Math.sqrt(midiNotes.length);
+      // Strum from low to high pitch: sort a copy so behavior is consistent across sources.
+      const sortedNotes = midiNotes.slice().sort((a, b) => a - b);
+      sortedNotes.forEach((m, i) => {
+        const offset = i * strumDelay;
+        const osc = ctx.createOscillator();
+        const g   = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = _midiToFreq(m);
+        g.gain.setValueAtTime(0, now + offset);
+        g.gain.linearRampToValueAtTime(vol, now + offset + 0.03);
+        g.gain.setValueAtTime(vol, now + offset + dur * 0.6);
+        g.gain.exponentialRampToValueAtTime(0.001, now + offset + dur);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + dur);
+      });
+    }
+
     /* ── Click handling (event delegation) ───────────────────────── */
     let _activePopupTimeout = null;
 
@@ -4381,7 +4405,11 @@
         const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
 
         _showChordPopup(notes, { clientX, clientY });
-        _playNotes(notes);
+        if (e.button === 2) {
+          _playNotesStrummed(notes);
+        } else {
+          _playNotes(notes);
+        }
 
         /* visual feedback */
         key.classList.add('active');
@@ -4397,6 +4425,13 @@
     document.addEventListener('touchstart', _handleKeyClick, { passive: false });
     document.addEventListener('touchend', _handleKeyClick);
     document.addEventListener('touchcancel', _handleKeyClick);
+
+    // Prevent context menu on chord keys so right-click can strum
+    document.addEventListener('contextmenu', function(e) {
+      if (e.target.closest('.white-key, .black-key')) {
+        e.preventDefault();
+      }
+    });
 
     // Hide popup if mouse/touch leaves the window
     document.addEventListener('mouseleave', _hideChordPopup);
