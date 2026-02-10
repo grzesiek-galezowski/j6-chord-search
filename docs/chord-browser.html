@@ -457,6 +457,21 @@
       color: var(--accent);
       padding: 0 6px;
     }
+    .synth-group legend label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .synth-group legend label input[type="checkbox"] {
+      accent-color: var(--accent);
+      margin: 0;
+      cursor: pointer;
+    }
+    .synth-group.disabled-group label:not(legend label) {
+      opacity: 0.35;
+      pointer-events: none;
+    }
     .synth-panel label {
       display: flex;
       flex-direction: column;
@@ -492,16 +507,122 @@
       font-size: 12px;
       align-self: center;
     }
+    /* ── Oscilloscope ─────────────────────────────────────────────── */
+    /* ── Collapsible sections ────────────────────────────────────── */
+    .collapsible-section {
+      border-bottom: 1px solid var(--border);
+    }
+    .collapsible-section > summary {
+      padding: 10px 24px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    .collapsible-section > summary::-webkit-details-marker { display: none; }
+    .collapsible-section > summary::before {
+      content: '▶';
+      font-size: 10px;
+      transition: transform 150ms ease;
+    }
+    .collapsible-section[open] > summary::before {
+      transform: rotate(90deg);
+    }
+    .scope-wrap {
+      padding: 0 24px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .scope-wrap .scope-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .scope-wrap .scope-header span { text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; color: var(--accent); }
+    #scopeCanvas {
+      width: 100%;
+      height: 100px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0a0f1a;
+    }
+
+    /* ── Welcome splash modal ─────────────────────────────────── */
+    #welcomeOverlay {
+      position: fixed; inset: 0;
+      z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      cursor: pointer;
+    }
+    #welcomeOverlay.hidden { display: none; }
+    #welcomeBox {
+      text-align: center;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem 2rem 2rem;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    #welcomeBox h2 {
+      margin: 0 0 0.3rem;
+      font-size: 1.35rem;
+      color: var(--accent);
+    }
+    #welcomeBox p {
+      margin: 0 0 1.5rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    #welcomeBtn {
+      display: inline-block;
+      padding: 0.6rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0f172a;
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    #welcomeBtn:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
+  <!-- Welcome splash — guarantees a user gesture before audio -->
+  <div id="welcomeOverlay">
+    <div id="welcomeBox">
+      <h2>🎹 J-6 Chord Browser</h2>
+      <p>Browse and play all 100 Roland J-6 chord sets.<br>Click or right-click keys to hear chords.</p>
+      <p style="margin:0;color:var(--muted);font-size:0.8rem;">Click anywhere to continue</p>
+    </div>
+  </div>
+
   <header>
     <a href="./index.html" class="back-link">← Back to Tools</a>
     <h1>Roland J-6 Chord Sequence Search and Browser</h1>
     <p>Client-side search and browse of all chord sets. No server required.</p>
   </header>
 
-  <div class="synth-panel" id="synthPanel">
+  <details class="collapsible-section">
+    <summary>Synthesizer</summary>
+    <div class="synth-panel" id="synthPanel">
     <fieldset class="synth-group">
       <legend>Oscillator</legend>
       <label>
@@ -515,8 +636,8 @@
       </label>
     </fieldset>
 
-    <fieldset class="synth-group">
-      <legend>Amp Envelope</legend>
+    <fieldset class="synth-group" id="ampEnvGroup">
+      <legend><label><input type="checkbox" id="synthAmpEnvEnabled" checked /> Amp Envelope</label></legend>
       <label>
         <span>Attack <span class="synth-val" id="synthAVal">0.03</span></span>
         <input type="range" id="synthAttack" min="0.001" max="1" step="0.001" value="0.03" />
@@ -535,8 +656,8 @@
       </label>
     </fieldset>
 
-    <fieldset class="synth-group">
-      <legend>Filter</legend>
+    <fieldset class="synth-group" id="filterGroup">
+      <legend><label><input type="checkbox" id="synthFilterEnabled" checked /> Filter</label></legend>
       <label>
         <span>Cutoff <span class="synth-val" id="synthCutoffVal">20000</span></span>
         <input type="range" id="synthCutoff" min="100" max="20000" step="1" value="20000" />
@@ -547,8 +668,8 @@
       </label>
     </fieldset>
 
-    <fieldset class="synth-group">
-      <legend>Filter Envelope</legend>
+    <fieldset class="synth-group" id="filterEnvGroup">
+      <legend><label><input type="checkbox" id="synthFilterEnvEnabled" checked /> Filter Envelope</label></legend>
       <label>
         <span>Attack <span class="synth-val" id="synthFAVal">0.00</span></span>
         <input type="range" id="synthFilterAttack" min="0" max="2" step="0.01" value="0" />
@@ -569,6 +690,30 @@
 
     <button id="synthReset">Reset</button>
   </div>
+  </details>
+
+  <details class="collapsible-section">
+    <summary>Oscilloscope</summary>
+    <div class="scope-wrap">
+    <div class="scope-header">
+      <span>Scope</span>
+      <label style="cursor:pointer;">Mode:
+        <select id="scopeMode" style="background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-size:12px;">
+          <option value="envelope">Envelope</option>
+          <option value="waveform">Waveform</option>
+        </select>
+      </label>
+      <label style="cursor:pointer;">Window:
+        <select id="scopeWindow" style="background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:2px 4px;font-size:12px;">
+          <option value="1">1 s</option>
+          <option value="2" selected>2 s</option>
+          <option value="4">4 s</option>
+        </select>
+      </label>
+    </div>
+    <canvas id="scopeCanvas"></canvas>
+  </div>
+  </details>
 
   <div class="container">
     <section class="controls">
@@ -4316,10 +4461,19 @@
       filterAttack: 0,
       filterDecay: 0,
       filterSustain: 1,
-      filterRelease: 0.48
+      filterRelease: 0.48,
+      ampEnvEnabled: true,
+      filterEnabled: true,
+      filterEnvEnabled: true
     };
 
     const _synth = Object.assign({}, _synthDefaults);
+
+    function _synthUpdateGroupStates() {
+      document.getElementById('ampEnvGroup').classList.toggle('disabled-group', !_synth.ampEnvEnabled);
+      document.getElementById('filterGroup').classList.toggle('disabled-group', !_synth.filterEnabled);
+      document.getElementById('filterEnvGroup').classList.toggle('disabled-group', !_synth.filterEnvEnabled || !_synth.filterEnabled);
+    }
 
     function _synthResetControls() {
       Object.assign(_synth, _synthDefaults);
@@ -4334,7 +4488,11 @@
       document.getElementById('synthFilterDecay').value = _synth.filterDecay;
       document.getElementById('synthFilterSustain').value = _synth.filterSustain;
       document.getElementById('synthFilterRelease').value = _synth.filterRelease;
+      document.getElementById('synthAmpEnvEnabled').checked = _synth.ampEnvEnabled;
+      document.getElementById('synthFilterEnabled').checked = _synth.filterEnabled;
+      document.getElementById('synthFilterEnvEnabled').checked = _synth.filterEnvEnabled;
       _synthUpdateLabels();
+      _synthUpdateGroupStates();
     }
 
     function _synthUpdateLabels() {
@@ -4362,14 +4520,181 @@
       document.getElementById('synthFilterDecay').addEventListener('input', e => { _synth.filterDecay = +e.target.value; _synthUpdateLabels(); });
       document.getElementById('synthFilterSustain').addEventListener('input', e => { _synth.filterSustain = +e.target.value; _synthUpdateLabels(); });
       document.getElementById('synthFilterRelease').addEventListener('input', e => { _synth.filterRelease = +e.target.value; _synthUpdateLabels(); });
+      document.getElementById('synthAmpEnvEnabled').addEventListener('change', e => { _synth.ampEnvEnabled = e.target.checked; _synthUpdateGroupStates(); });
+      document.getElementById('synthFilterEnabled').addEventListener('change', e => { _synth.filterEnabled = e.target.checked; _synthUpdateGroupStates(); });
+      document.getElementById('synthFilterEnvEnabled').addEventListener('change', e => { _synth.filterEnvEnabled = e.target.checked; _synthUpdateGroupStates(); });
       document.getElementById('synthReset').addEventListener('click', _synthResetControls);
+
+      /* Sync _synth state from DOM in case the browser restored form values after reload */
+      _synth.wave = document.getElementById('synthWave').value;
+      _synth.attack = +document.getElementById('synthAttack').value;
+      _synth.decay = +document.getElementById('synthDecay').value;
+      _synth.sustain = +document.getElementById('synthSustain').value;
+      _synth.release = +document.getElementById('synthRelease').value;
+      _synth.filterCutoff = +document.getElementById('synthCutoff').value;
+      _synth.filterQ = +document.getElementById('synthQ').value;
+      _synth.filterAttack = +document.getElementById('synthFilterAttack').value;
+      _synth.filterDecay = +document.getElementById('synthFilterDecay').value;
+      _synth.filterSustain = +document.getElementById('synthFilterSustain').value;
+      _synth.filterRelease = +document.getElementById('synthFilterRelease').value;
+      _synth.ampEnvEnabled = document.getElementById('synthAmpEnvEnabled').checked;
+      _synth.filterEnabled = document.getElementById('synthFilterEnabled').checked;
+      _synth.filterEnvEnabled = document.getElementById('synthFilterEnvEnabled').checked;
+      _synthUpdateLabels();
+      _synthUpdateGroupStates();
+
+      /* Force a full reset on page load — this matches the behavior of
+         clicking the Reset button, which empirically fixes the first-note
+         audio glitch across browsers. */
+      _synthResetControls();
     })();
 
     let _audioCtx = null;
+    let _analyser = null;
+    let _masterGain = null;
+    let _pendingNotes = null; // {notes,strumDelay} while awaiting resume()
+
+    function _initAudioCtx() {
+      if (_audioCtx) return;
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // Create a master chain: voices → _masterGain → _analyser → destination
+      _masterGain = _audioCtx.createGain();
+      _masterGain.gain.value = 1;
+      _analyser = _audioCtx.createAnalyser();
+      _analyser.fftSize = 2048;
+      _masterGain.connect(_analyser).connect(_audioCtx.destination);
+      _startScope();
+    }
+
+    /* ── Welcome-modal click initialises audio ─────────────────
+       The modal forces a real user gesture before anything else,
+       so we can safely create + resume the AudioContext here. */
+    document.getElementById('welcomeOverlay').addEventListener('click', () => {
+      _initAudioCtx();
+      if (_audioCtx.state === 'suspended') _audioCtx.resume();
+      document.getElementById('welcomeOverlay').classList.add('hidden');
+    });
+
     function _ctx() {
-      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      _initAudioCtx();
       if (_audioCtx.state === 'suspended') _audioCtx.resume();
       return _audioCtx;
+    }
+    function _ctxSync() { return _audioCtx; }
+    function _dest() { return _masterGain || _audioCtx.destination; }
+
+    /* ── Scope drawing ───────────────────────────────────────────── */
+    let _scopeRafId = null;
+    let _scopeEnvBuffer = [];       // ring buffer of peak amplitudes
+    let _scopeEnvWriteIdx = 0;
+    const _SCOPE_ENV_MAX_SAMPLES = 512;  // how many envelope samples we store
+
+    function _startScope() {
+      const canvas = document.getElementById('scopeCanvas');
+      const modeSelect = document.getElementById('scopeMode');
+      const windowSelect = document.getElementById('scopeWindow');
+      const dataArray = new Float32Array(_analyser.fftSize);
+
+      // Initialise envelope buffer
+      _scopeEnvBuffer = new Float32Array(_SCOPE_ENV_MAX_SAMPLES);
+      _scopeEnvWriteIdx = 0;
+
+      let lastEnvTime = 0;
+
+      function draw() {
+        _scopeRafId = requestAnimationFrame(draw);
+        const ctx2d = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.round(rect.width * dpr);
+        const h = Math.round(rect.height * dpr);
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        ctx2d.clearRect(0, 0, w, h);
+
+        const mode = modeSelect.value;
+        _analyser.getFloatTimeDomainData(dataArray);
+
+        if (mode === 'waveform') {
+          // Classic oscilloscope
+          ctx2d.strokeStyle = '#38bdf8';
+          ctx2d.lineWidth = dpr;
+          ctx2d.beginPath();
+          const sliceW = w / dataArray.length;
+          for (let i = 0; i < dataArray.length; i++) {
+            const y = (1 - dataArray[i]) * h / 2;
+            if (i === 0) ctx2d.moveTo(0, y); else ctx2d.lineTo(i * sliceW, y);
+          }
+          ctx2d.stroke();
+        } else {
+          // Scrolling envelope view
+          const windowSec = +(windowSelect.value) || 2;
+          // We sample the peak about 60 times/sec; figure out how many samples to show
+          const samplesPerSec = 60;
+          const samplesToShow = Math.min(samplesPerSec * windowSec, _SCOPE_ENV_MAX_SAMPLES);
+
+          // Compute current peak from raw waveform
+          const now = performance.now();
+          const envInterval = 1000 / samplesPerSec;
+          if (now - lastEnvTime >= envInterval) {
+            let peak = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+              const v = Math.abs(dataArray[i]);
+              if (v > peak) peak = v;
+            }
+            _scopeEnvBuffer[_scopeEnvWriteIdx % _SCOPE_ENV_MAX_SAMPLES] = peak;
+            _scopeEnvWriteIdx++;
+            lastEnvTime = now;
+          }
+
+          // Draw grid lines
+          ctx2d.strokeStyle = '#1e293b';
+          ctx2d.lineWidth = dpr;
+          for (let db = 0; db <= 1; db += 0.25) {
+            const y = (1 - db) * h;
+            ctx2d.beginPath();
+            ctx2d.moveTo(0, y);
+            ctx2d.lineTo(w, y);
+            ctx2d.stroke();
+          }
+
+          // Draw envelope
+          ctx2d.strokeStyle = '#38bdf8';
+          ctx2d.fillStyle = 'rgba(56, 189, 248, 0.12)';
+          ctx2d.lineWidth = 1.5 * dpr;
+          ctx2d.beginPath();
+          const total = Math.min(_scopeEnvWriteIdx, samplesToShow);
+          const startIdx = _scopeEnvWriteIdx - total;
+          for (let i = 0; i < total; i++) {
+            const idx = (startIdx + i) % _SCOPE_ENV_MAX_SAMPLES;
+            const amp = Math.min(_scopeEnvBuffer[idx] * 4, 1); // scale up for visibility
+            const x = (i / samplesToShow) * w;
+            const y = (1 - amp) * h;
+            if (i === 0) ctx2d.moveTo(x, y); else ctx2d.lineTo(x, y);
+          }
+          ctx2d.stroke();
+          // Fill under the curve
+          if (total > 0) {
+            const lastX = ((total - 1) / samplesToShow) * w;
+            ctx2d.lineTo(lastX, h);
+            ctx2d.lineTo(0, h);
+            ctx2d.closePath();
+            ctx2d.fill();
+          }
+
+          // Time labels
+          ctx2d.fillStyle = '#64748b';
+          ctx2d.font = `${10 * dpr}px system-ui`;
+          ctx2d.textAlign = 'center';
+          for (let t = 0; t <= windowSec; t += 0.5) {
+            const x = (t / windowSec) * w;
+            ctx2d.fillText(`${t.toFixed(1)}s`, x, h - 3 * dpr);
+          }
+        }
+      }
+      draw();
     }
 
     function _midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
@@ -4421,21 +4746,36 @@
     }
 
     function _releaseVoices() {
+      _pendingNotes = null;  // cancel any note-on pending behind a resume()
       if (!_activeVoices.length) return;
-      const ctx = _ctx();
+      const ctx = _ctxSync();
+      if (!ctx) return;
       const now = ctx.currentTime;
       const r = Math.max(_synth.release, 0.01);
       const fr = Math.max(_synth.filterRelease, 0.01);
-      const maxRelease = Math.max(r, fr);
+      let maxRelease = 0;
 
       _activeVoices.forEach(voice => {
-        voice.gain.gain.cancelScheduledValues(now);
-        voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, _MIN_GAIN), now);
-        voice.gain.gain.exponentialRampToValueAtTime(_MIN_GAIN, now + r);
+        if (_synth.ampEnvEnabled) {
+          voice.gain.gain.cancelScheduledValues(now);
+          voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, _MIN_GAIN), now);
+          voice.gain.gain.exponentialRampToValueAtTime(_MIN_GAIN, now + r);
+          maxRelease = Math.max(maxRelease, r);
+        }
 
-        voice.filter.frequency.cancelScheduledValues(now);
-        voice.filter.frequency.setValueAtTime(Math.max(voice.filter.frequency.value, _MIN_FILTER_FREQ), now);
-        voice.filter.frequency.linearRampToValueAtTime(_MIN_FILTER_FREQ, now + fr);
+        if (voice.filter && _synth.filterEnabled && _synth.filterEnvEnabled) {
+          voice.filter.frequency.cancelScheduledValues(now);
+          voice.filter.frequency.setValueAtTime(Math.max(voice.filter.frequency.value, _MIN_FILTER_FREQ), now);
+          voice.filter.frequency.linearRampToValueAtTime(_MIN_FILTER_FREQ, now + fr);
+          maxRelease = Math.max(maxRelease, fr);
+        }
+
+        if (!_synth.ampEnvEnabled) {
+          /* No envelope — just cut the gain quickly */
+          voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
+          voice.gain.gain.linearRampToValueAtTime(0, now + 0.02);
+          maxRelease = Math.max(maxRelease, 0.02);
+        }
 
         voice.osc.stop(now + maxRelease + 0.05);
       });
@@ -4443,51 +4783,83 @@
       _activeVoices = [];
     }
 
-    function _startNotes(midiNotes) {
-      _releaseVoices();
-      const ctx = _ctx();
+    /* Create oscillator voices for the given MIDI notes and push them into _activeVoices.
+       IMPORTANT: only call this when _audioCtx.state === 'running' so that
+       ctx.currentTime is reliably advancing. */
+    function _createVoices(ctx, midiNotes, strumDelay) {
       const now = ctx.currentTime;
       const vol = 0.22 / Math.sqrt(midiNotes.length);
-      midiNotes.forEach(m => {
+      const notes = strumDelay > 0
+        ? midiNotes.slice().sort((a, b) => a - b)
+        : midiNotes;
+      notes.forEach((m, i) => {
+        const t0 = now + i * strumDelay;
         const osc = ctx.createOscillator();
         const g   = ctx.createGain();
-        const filt = ctx.createBiquadFilter();
         osc.type = _synth.wave;
         osc.frequency.value = _midiToFreq(m);
-        g.gain.setValueAtTime(_MIN_GAIN, now);
-        _applyNoteOn(g, vol, now);
-        filt.type = 'lowpass';
-        filt.Q.value = _synth.filterQ;
-        _applyFilterNoteOn(filt, now);
-        osc.connect(g).connect(filt).connect(ctx.destination);
-        osc.start(now);
-        _activeVoices.push({ osc, gain: g, filter: filt });
+
+        if (_synth.ampEnvEnabled) {
+          g.gain.value = _MIN_GAIN;
+          _applyNoteOn(g, vol, t0);
+        } else {
+          g.gain.value = vol;
+        }
+
+        let tail = g;
+        if (_synth.filterEnabled) {
+          const filt = ctx.createBiquadFilter();
+          filt.type = 'lowpass';
+          filt.frequency.value = _synth.filterCutoff;
+          filt.Q.value = _synth.filterQ;
+          if (_synth.filterEnvEnabled) {
+            _applyFilterNoteOn(filt, t0);
+          }
+          g.connect(filt);
+          tail = filt;
+          osc._filt = filt;
+        }
+        osc.connect(g);
+        tail.connect(_dest());
+        osc.start(t0);
+        _activeVoices.push({ osc, gain: g, filter: osc._filt || null });
       });
+    }
+
+    function _startNotes(midiNotes) {
+      _releaseVoices();
+      _initAudioCtx();
+      if (_audioCtx.state === 'running') {
+        _createVoices(_audioCtx, midiNotes, 0);
+      } else {
+        /* Context is suspended (autoplay policy). Call resume() inside this
+           user-gesture handler and wait for it to complete before scheduling
+           any automation — this guarantees currentTime is advancing. */
+        _pendingNotes = { notes: midiNotes, strumDelay: 0 };
+        _audioCtx.resume().then(() => {
+          if (_pendingNotes) {
+            _createVoices(_audioCtx, _pendingNotes.notes, _pendingNotes.strumDelay);
+            _pendingNotes = null;
+          }
+        });
+      }
     }
 
     function _startNotesStrummed(midiNotes) {
       _releaseVoices();
+      _initAudioCtx();
       const strumDelay = 0.07;
-      const ctx = _ctx();
-      const now = ctx.currentTime;
-      const vol = 0.22 / Math.sqrt(midiNotes.length);
-      const sortedNotes = midiNotes.slice().sort((a, b) => a - b);
-      sortedNotes.forEach((m, i) => {
-        const t0 = now + i * strumDelay;
-        const osc = ctx.createOscillator();
-        const g   = ctx.createGain();
-        const filt = ctx.createBiquadFilter();
-        osc.type = _synth.wave;
-        osc.frequency.value = _midiToFreq(m);
-        g.gain.setValueAtTime(_MIN_GAIN, t0);
-        _applyNoteOn(g, vol, t0);
-        filt.type = 'lowpass';
-        filt.Q.value = _synth.filterQ;
-        _applyFilterNoteOn(filt, t0);
-        osc.connect(g).connect(filt).connect(ctx.destination);
-        osc.start(t0);
-        _activeVoices.push({ osc, gain: g, filter: filt });
-      });
+      if (_audioCtx.state === 'running') {
+        _createVoices(_audioCtx, midiNotes, strumDelay);
+      } else {
+        _pendingNotes = { notes: midiNotes, strumDelay };
+        _audioCtx.resume().then(() => {
+          if (_pendingNotes) {
+            _createVoices(_audioCtx, _pendingNotes.notes, _pendingNotes.strumDelay);
+            _pendingNotes = null;
+          }
+        });
+      }
     }
 
     /* ── Click handling (event delegation) ───────────────────────── */
