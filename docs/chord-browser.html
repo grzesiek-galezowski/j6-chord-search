@@ -4374,15 +4374,18 @@
 
     function _midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
 
+    const _MIN_GAIN = 0.0001;       // Near-zero gain (Web Audio exponentialRamp can't target 0)
+    const _MIN_FILTER_FREQ = 20;    // Minimum filter frequency in Hz
+
     let _activeVoices = [];
 
     function _applyNoteOn(g, vol, t0) {
       const a = _synth.attack;
       const d = _synth.decay;
       const s = _synth.sustain;
-      const sustainLevel = Math.max(vol * s, 0.0001);
+      const sustainLevel = Math.max(vol * s, _MIN_GAIN);
 
-      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.setValueAtTime(_MIN_GAIN, t0);
       g.gain.linearRampToValueAtTime(vol, t0 + Math.max(a, 0.001));
       g.gain.linearRampToValueAtTime(sustainLevel, t0 + Math.max(a, 0.001) + Math.max(d, 0.001));
     }
@@ -4392,10 +4395,9 @@
       const fA = _synth.filterAttack;
       const fD = _synth.filterDecay;
       const fS = _synth.filterSustain;
-      const base = 20;
-      const sustainFreq = Math.max(base + (cutoff - base) * fS, 20);
+      const sustainFreq = Math.max(_MIN_FILTER_FREQ + (cutoff - _MIN_FILTER_FREQ) * fS, _MIN_FILTER_FREQ);
 
-      filt.frequency.setValueAtTime(base, t0);
+      filt.frequency.setValueAtTime(_MIN_FILTER_FREQ, t0);
       filt.frequency.linearRampToValueAtTime(cutoff, t0 + Math.max(fA, 0.001));
       filt.frequency.linearRampToValueAtTime(sustainFreq, t0 + Math.max(fA, 0.001) + Math.max(fD, 0.001));
     }
@@ -4410,12 +4412,12 @@
 
       _activeVoices.forEach(voice => {
         voice.gain.gain.cancelScheduledValues(now);
-        voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, 0.0001), now);
-        voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + r);
+        voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, _MIN_GAIN), now);
+        voice.gain.gain.exponentialRampToValueAtTime(_MIN_GAIN, now + r);
 
         voice.filter.frequency.cancelScheduledValues(now);
-        voice.filter.frequency.setValueAtTime(Math.max(voice.filter.frequency.value, 20), now);
-        voice.filter.frequency.linearRampToValueAtTime(20, now + fr);
+        voice.filter.frequency.setValueAtTime(Math.max(voice.filter.frequency.value, _MIN_FILTER_FREQ), now);
+        voice.filter.frequency.linearRampToValueAtTime(_MIN_FILTER_FREQ, now + fr);
 
         voice.osc.stop(now + maxRelease + 0.05);
       });
@@ -4434,7 +4436,7 @@
         const filt = ctx.createBiquadFilter();
         osc.type = _synth.wave;
         osc.frequency.value = _midiToFreq(m);
-        g.gain.setValueAtTime(0.0001, now);
+        g.gain.setValueAtTime(_MIN_GAIN, now);
         _applyNoteOn(g, vol, now);
         filt.type = 'lowpass';
         filt.Q.value = _synth.filterQ;
@@ -4459,11 +4461,11 @@
         const filt = ctx.createBiquadFilter();
         osc.type = _synth.wave;
         osc.frequency.value = _midiToFreq(m);
-        g.gain.setValueAtTime(0.0001, now);
+        g.gain.setValueAtTime(_MIN_GAIN, now);
         _applyNoteOn(g, vol, now + offset);
         filt.type = 'lowpass';
         filt.Q.value = _synth.filterQ;
-        filt.frequency.setValueAtTime(20, now);
+        filt.frequency.setValueAtTime(_MIN_FILTER_FREQ, now);
         _applyFilterNoteOn(filt, now + offset);
         osc.connect(g).connect(filt).connect(ctx.destination);
         osc.start(now);
