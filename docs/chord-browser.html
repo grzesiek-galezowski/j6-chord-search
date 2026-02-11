@@ -635,6 +635,44 @@
   <details class="collapsible-section">
     <summary>Synth engine</summary>
     <div class="synth-panel" id="synthPanel">
+    <fieldset class="synth-group" style="width: 100%; max-width: 300px;">
+      <legend>Preset</legend>
+      <label>
+        <span>Load Preset</span>
+        <select id="synthPreset">
+          <option value="">-- Select Preset --</option>
+          <optgroup label="Plucks">
+            <option value="classicPluck">Classic Pluck</option>
+            <option value="brightPluck">Bright Pluck</option>
+            <option value="softPluck">Soft Pluck</option>
+            <option value="metallicPluck">Metallic Pluck</option>
+            <option value="bassPluck">Bass Pluck</option>
+          </optgroup>
+          <optgroup label="Pads">
+            <option value="warmPad">Warm Pad</option>
+            <option value="brightPad">Bright Pad</option>
+            <option value="choirPad">Choir Pad</option>
+            <option value="stringPad">String Pad</option>
+            <option value="darkPad">Dark Pad</option>
+          </optgroup>
+          <optgroup label="Leads">
+            <option value="classicLead">Classic Lead</option>
+            <option value="brightLead">Bright Lead</option>
+            <option value="smoothLead">Smooth Lead</option>
+            <option value="vintageLead">Vintage Lead</option>
+            <option value="synthLead">Synth Lead</option>
+          </optgroup>
+          <optgroup label="Experimental">
+            <option value="wobble">Wobble</option>
+            <option value="tremolo">Tremolo</option>
+            <option value="resonantSweep">Resonant Sweep</option>
+            <option value="phaser">Phaser</option>
+            <option value="glitch">Glitch</option>
+          </optgroup>
+        </select>
+      </label>
+    </fieldset>
+
     <fieldset class="synth-group">
       <legend>Oscillator</legend>
       <label>
@@ -697,6 +735,35 @@
       <label>
         <span>Release <span class="synth-val" id="synthFRVal">0.01s</span></span>
         <input type="range" id="synthFilterRelease" min="0.01" max="3" step="0.01" value="0.01" />
+      </label>
+    </fieldset>
+
+    <fieldset class="synth-group" id="lfoGroup">
+      <legend><label><input type="checkbox" id="synthLfoEnabled" /> LFO</label></legend>
+      <label>
+        <span>Target</span>
+        <select id="synthLfoTarget">
+          <option value="cutoff" selected>Filter Cutoff</option>
+          <option value="q">Filter Q</option>
+          <option value="pitch">Pitch</option>
+        </select>
+      </label>
+      <label>
+        <span>Wave</span>
+        <select id="synthLfoWave">
+          <option value="sine" selected>Sine</option>
+          <option value="triangle">Triangle</option>
+          <option value="sawtooth">Sawtooth</option>
+          <option value="square">Square</option>
+        </select>
+      </label>
+      <label>
+        <span>Rate <span class="synth-val" id="synthLfoRateVal">2.0 Hz</span></span>
+        <input type="range" id="synthLfoRate" min="0.1" max="20" step="0.1" value="2.0" />
+      </label>
+      <label>
+        <span>Depth <span class="synth-val" id="synthLfoDepthVal">50%</span></span>
+        <input type="range" id="synthLfoDepth" min="0" max="1" step="0.01" value="0.5" />
       </label>
     </fieldset>
 
@@ -4521,19 +4588,462 @@
       filterRelease: 1.01,
       ampEnvEnabled: true,
       filterEnabled: true,
-      filterEnvEnabled: true
+      filterEnvEnabled: true,
+      lfoEnabled: true,
+      lfoTarget: 'cutoff',
+      lfoWave: 'sine',
+      lfoRate: 2.0,
+      lfoDepth: 0.5
+    };
+
+    const _synthPresets = {
+      // ── Plucks ────────────────────────────────────────────────────
+      classicPluck: {
+        wave: 'sawtooth',
+        attack: 0.001,
+        decay: 0.3,
+        sustain: 0,
+        release: 0.1,
+        filterCutoff: 3500,
+        filterQ: 2.5,
+        filterAttack: 0.001,
+        filterDecay: 0.2,
+        filterSustain: 0,
+        filterRelease: 0.1,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 2.0,
+        lfoDepth: 0.5
+      },
+      brightPluck: {
+        wave: 'triangle',
+        attack: 0.001,
+        decay: 0.15,
+        sustain: 0,
+        release: 0.05,
+        filterCutoff: 8000,
+        filterQ: 1.5,
+        filterAttack: 0.001,
+        filterDecay: 0.1,
+        filterSustain: 0,
+        filterRelease: 0.05,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 2.0,
+        lfoDepth: 0.5
+      },
+      softPluck: {
+        wave: 'sine',
+        attack: 0.01,
+        decay: 0.4,
+        sustain: 0,
+        release: 0.15,
+        filterCutoff: 2000,
+        filterQ: 1.0,
+        filterAttack: 0.01,
+        filterDecay: 0.3,
+        filterSustain: 0,
+        filterRelease: 0.15,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 2.0,
+        lfoDepth: 0.5
+      },
+      metallicPluck: {
+        wave: 'square',
+        attack: 0.001,
+        decay: 0.25,
+        sustain: 0,
+        release: 0.08,
+        filterCutoff: 4500,
+        filterQ: 12.0,
+        filterAttack: 0.001,
+        filterDecay: 0.15,
+        filterSustain: 0,
+        filterRelease: 0.08,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 2.0,
+        lfoDepth: 0.5
+      },
+      bassPluck: {
+        wave: 'sawtooth',
+        attack: 0.001,
+        decay: 0.5,
+        sustain: 0,
+        release: 0.2,
+        filterCutoff: 800,
+        filterQ: 4.0,
+        filterAttack: 0.001,
+        filterDecay: 0.4,
+        filterSustain: 0,
+        filterRelease: 0.2,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 2.0,
+        lfoDepth: 0.5
+      },
+
+      // ── Pads ──────────────────────────────────────────────────────
+      warmPad: {
+        wave: 'sawtooth',
+        attack: 0.8,
+        decay: 0.5,
+        sustain: 0.7,
+        release: 1.5,
+        filterCutoff: 1500,
+        filterQ: 1.2,
+        filterAttack: 1.0,
+        filterDecay: 0.6,
+        filterSustain: 0.5,
+        filterRelease: 1.5,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 0.3,
+        lfoDepth: 0.2
+      },
+      brightPad: {
+        wave: 'triangle',
+        attack: 0.5,
+        decay: 0.3,
+        sustain: 0.8,
+        release: 1.2,
+        filterCutoff: 3500,
+        filterQ: 1.0,
+        filterAttack: 0.6,
+        filterDecay: 0.4,
+        filterSustain: 0.7,
+        filterRelease: 1.2,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 0.5,
+        lfoDepth: 0.15
+      },
+      choirPad: {
+        wave: 'sine',
+        attack: 1.2,
+        decay: 0.4,
+        sustain: 0.9,
+        release: 2.0,
+        filterCutoff: 2500,
+        filterQ: 0.8,
+        filterAttack: 1.5,
+        filterDecay: 0.5,
+        filterSustain: 0.8,
+        filterRelease: 2.0,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 0.2,
+        lfoDepth: 0.1
+      },
+      stringPad: {
+        wave: 'sawtooth',
+        attack: 0.6,
+        decay: 0.4,
+        sustain: 0.75,
+        release: 1.8,
+        filterCutoff: 2200,
+        filterQ: 2.0,
+        filterAttack: 0.8,
+        filterDecay: 0.5,
+        filterSustain: 0.6,
+        filterRelease: 1.8,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 0.4,
+        lfoDepth: 0.18
+      },
+      darkPad: {
+        wave: 'triangle',
+        attack: 1.0,
+        decay: 0.6,
+        sustain: 0.85,
+        release: 2.5,
+        filterCutoff: 800,
+        filterQ: 1.5,
+        filterAttack: 1.2,
+        filterDecay: 0.7,
+        filterSustain: 0.7,
+        filterRelease: 2.5,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 0.25,
+        lfoDepth: 0.12
+      },
+
+      // ── Leads ─────────────────────────────────────────────────────
+      classicLead: {
+        wave: 'sawtooth',
+        attack: 0.01,
+        decay: 0.2,
+        sustain: 0.6,
+        release: 0.3,
+        filterCutoff: 2800,
+        filterQ: 4.5,
+        filterAttack: 0.02,
+        filterDecay: 0.35,
+        filterSustain: 0.5,
+        filterRelease: 0.3,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 5.0,
+        lfoDepth: 0.3
+      },
+      brightLead: {
+        wave: 'square',
+        attack: 0.005,
+        decay: 0.15,
+        sustain: 0.7,
+        release: 0.2,
+        filterCutoff: 5500,
+        filterQ: 3.0,
+        filterAttack: 0.01,
+        filterDecay: 0.2,
+        filterSustain: 0.6,
+        filterRelease: 0.2,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 6.0,
+        lfoDepth: 0.25
+      },
+      smoothLead: {
+        wave: 'triangle',
+        attack: 0.05,
+        decay: 0.25,
+        sustain: 0.65,
+        release: 0.4,
+        filterCutoff: 3200,
+        filterQ: 2.5,
+        filterAttack: 0.08,
+        filterDecay: 0.3,
+        filterSustain: 0.55,
+        filterRelease: 0.4,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 4.5,
+        lfoDepth: 0.2
+      },
+      vintageLead: {
+        wave: 'sawtooth',
+        attack: 0.02,
+        decay: 0.4,
+        sustain: 0.5,
+        release: 0.35,
+        filterCutoff: 2200,
+        filterQ: 8.0,
+        filterAttack: 0.03,
+        filterDecay: 0.5,
+        filterSustain: 0.4,
+        filterRelease: 0.35,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 5.5,
+        lfoDepth: 0.35
+      },
+      synthLead: {
+        wave: 'square',
+        attack: 0.01,
+        decay: 0.18,
+        sustain: 0.68,
+        release: 0.25,
+        filterCutoff: 4200,
+        filterQ: 5.5,
+        filterAttack: 0.015,
+        filterDecay: 0.25,
+        filterSustain: 0.58,
+        filterRelease: 0.25,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 7.0,
+        lfoDepth: 0.28
+      },
+
+      // ── Experimental ──────────────────────────────────────────────
+      wobble: {
+        wave: 'sawtooth',
+        attack: 0.01,
+        decay: 0.3,
+        sustain: 0.7,
+        release: 0.4,
+        filterCutoff: 1800,
+        filterQ: 8.0,
+        filterAttack: 0,
+        filterDecay: 0,
+        filterSustain: 1,
+        filterRelease: 0.01,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: false,
+        lfoEnabled: true,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 1.5,
+        lfoDepth: 0.7
+      },
+      tremolo: {
+        wave: 'triangle',
+        attack: 0.02,
+        decay: 0.2,
+        sustain: 0.8,
+        release: 0.3,
+        filterCutoff: 3500,
+        filterQ: 2.0,
+        filterAttack: 0,
+        filterDecay: 0,
+        filterSustain: 1,
+        filterRelease: 0.01,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: false,
+        lfoEnabled: true,
+        lfoTarget: 'pitch',
+        lfoWave: 'sine',
+        lfoRate: 4.0,
+        lfoDepth: 0.08
+      },
+      resonantSweep: {
+        wave: 'sawtooth',
+        attack: 0.005,
+        decay: 0.25,
+        sustain: 0.6,
+        release: 0.5,
+        filterCutoff: 800,
+        filterQ: 15.0,
+        filterAttack: 0.01,
+        filterDecay: 1.2,
+        filterSustain: 0.3,
+        filterRelease: 0.5,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: false,
+        lfoTarget: 'cutoff',
+        lfoWave: 'sine',
+        lfoRate: 2.0,
+        lfoDepth: 0.5
+      },
+      phaser: {
+        wave: 'square',
+        attack: 0.03,
+        decay: 0.3,
+        sustain: 0.65,
+        release: 0.4,
+        filterCutoff: 2500,
+        filterQ: 6.0,
+        filterAttack: 0,
+        filterDecay: 0,
+        filterSustain: 1,
+        filterRelease: 0.01,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: false,
+        lfoEnabled: true,
+        lfoTarget: 'q',
+        lfoWave: 'sine',
+        lfoRate: 0.8,
+        lfoDepth: 0.6
+      },
+      glitch: {
+        wave: 'triangle',
+        attack: 0.001,
+        decay: 0.12,
+        sustain: 0.5,
+        release: 0.15,
+        filterCutoff: 4500,
+        filterQ: 7.0,
+        filterAttack: 0.001,
+        filterDecay: 0.08,
+        filterSustain: 0.4,
+        filterRelease: 0.15,
+        ampEnvEnabled: true,
+        filterEnabled: true,
+        filterEnvEnabled: true,
+        lfoEnabled: true,
+        lfoTarget: 'pitch',
+        lfoWave: 'square',
+        lfoRate: 12.0,
+        lfoDepth: 0.15
+      }
     };
 
     const _synth = Object.assign({}, _synthDefaults);
+    let _currentPreset = ''; // Track currently loaded preset
 
     function _synthUpdateGroupStates() {
       document.getElementById('ampEnvGroup').classList.toggle('disabled-group', !_synth.ampEnvEnabled);
       document.getElementById('filterGroup').classList.toggle('disabled-group', !_synth.filterEnabled);
       document.getElementById('filterEnvGroup').classList.toggle('disabled-group', !_synth.filterEnvEnabled || !_synth.filterEnabled);
+      document.getElementById('lfoGroup').classList.toggle('disabled-group', !_synth.lfoEnabled);
     }
 
-    function _synthResetControls() {
-      Object.assign(_synth, _synthDefaults);
+    function _synthLoadPreset(presetName) {
+      if (!presetName || !_synthPresets[presetName]) return;
+
+      const preset = _synthPresets[presetName];
+      Object.assign(_synth, preset);
+      _currentPreset = presetName;
+
+      // Update all UI controls
       document.getElementById('synthWave').value = _synth.wave;
       document.getElementById('synthAttack').value = _synth.attack;
       document.getElementById('synthDecay').value = _synth.decay;
@@ -4548,6 +5058,39 @@
       document.getElementById('synthAmpEnvEnabled').checked = _synth.ampEnvEnabled;
       document.getElementById('synthFilterEnabled').checked = _synth.filterEnabled;
       document.getElementById('synthFilterEnvEnabled').checked = _synth.filterEnvEnabled;
+      document.getElementById('synthLfoEnabled').checked = _synth.lfoEnabled;
+      document.getElementById('synthLfoTarget').value = _synth.lfoTarget;
+      document.getElementById('synthLfoWave').value = _synth.lfoWave;
+      document.getElementById('synthLfoRate').value = _synth.lfoRate;
+      document.getElementById('synthLfoDepth').value = _synth.lfoDepth;
+
+      _synthUpdateLabels();
+      _synthUpdateGroupStates();
+    }
+
+    function _synthResetControls() {
+      Object.assign(_synth, _synthDefaults);
+      _currentPreset = ''; // Clear current preset
+      document.getElementById('synthPreset').value = ''; // Reset dropdown
+      document.getElementById('synthWave').value = _synth.wave;
+      document.getElementById('synthAttack').value = _synth.attack;
+      document.getElementById('synthDecay').value = _synth.decay;
+      document.getElementById('synthSustain').value = _synth.sustain;
+      document.getElementById('synthRelease').value = _synth.release;
+      document.getElementById('synthCutoff').value = _synth.filterCutoff;
+      document.getElementById('synthQ').value = _synth.filterQ;
+      document.getElementById('synthFilterAttack').value = _synth.filterAttack;
+      document.getElementById('synthFilterDecay').value = _synth.filterDecay;
+      document.getElementById('synthFilterSustain').value = _synth.filterSustain;
+      document.getElementById('synthFilterRelease').value = _synth.filterRelease;
+      document.getElementById('synthAmpEnvEnabled').checked = _synth.ampEnvEnabled;
+      document.getElementById('synthFilterEnabled').checked = _synth.filterEnabled;
+      document.getElementById('synthFilterEnvEnabled').checked = _synth.filterEnvEnabled;
+      document.getElementById('synthLfoEnabled').checked = _synth.lfoEnabled;
+      document.getElementById('synthLfoTarget').value = _synth.lfoTarget;
+      document.getElementById('synthLfoWave').value = _synth.lfoWave;
+      document.getElementById('synthLfoRate').value = _synth.lfoRate;
+      document.getElementById('synthLfoDepth').value = _synth.lfoDepth;
       _synthUpdateLabels();
       _synthUpdateGroupStates();
     }
@@ -4563,23 +5106,46 @@
       document.getElementById('synthFDVal').textContent = Number(_synth.filterDecay).toFixed(2) + 's';
       document.getElementById('synthFSVal').textContent = Math.round(_synth.filterSustain * 100) + '%';
       document.getElementById('synthFRVal').textContent = Number(_synth.filterRelease).toFixed(2) + 's';
+      document.getElementById('synthLfoRateVal').textContent = Number(_synth.lfoRate).toFixed(1) + ' Hz';
+      document.getElementById('synthLfoDepthVal').textContent = Math.round(_synth.lfoDepth * 100) + '%';
     }
 
     (function _initSynthControls() {
-      document.getElementById('synthWave').addEventListener('input', e => { _synth.wave = e.target.value; });
-      document.getElementById('synthAttack').addEventListener('input', e => { _synth.attack = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthDecay').addEventListener('input', e => { _synth.decay = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthSustain').addEventListener('input', e => { _synth.sustain = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthRelease').addEventListener('input', e => { _synth.release = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthCutoff').addEventListener('input', e => { _synth.filterCutoff = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthQ').addEventListener('input', e => { _synth.filterQ = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthFilterAttack').addEventListener('input', e => { _synth.filterAttack = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthFilterDecay').addEventListener('input', e => { _synth.filterDecay = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthFilterSustain').addEventListener('input', e => { _synth.filterSustain = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthFilterRelease').addEventListener('input', e => { _synth.filterRelease = +e.target.value; _synthUpdateLabels(); });
-      document.getElementById('synthAmpEnvEnabled').addEventListener('change', e => { _synth.ampEnvEnabled = e.target.checked; _synthUpdateGroupStates(); });
-      document.getElementById('synthFilterEnabled').addEventListener('change', e => { _synth.filterEnabled = e.target.checked; _synthUpdateGroupStates(); });
-      document.getElementById('synthFilterEnvEnabled').addEventListener('change', e => { _synth.filterEnvEnabled = e.target.checked; _synthUpdateGroupStates(); });
+      document.getElementById('synthPreset').addEventListener('change', e => {
+        const presetName = e.target.value;
+        if (presetName) {
+          _synthLoadPreset(presetName);
+          // Dropdown will stay on the selected preset
+        }
+      });
+
+      // Helper function to clear preset on manual change
+      function _clearPresetOnChange() {
+        if (_currentPreset) {
+          _currentPreset = '';
+          document.getElementById('synthPreset').value = '';
+        }
+      }
+
+      document.getElementById('synthWave').addEventListener('input', e => { _synth.wave = e.target.value; _clearPresetOnChange(); });
+      document.getElementById('synthAttack').addEventListener('input', e => { _synth.attack = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthDecay').addEventListener('input', e => { _synth.decay = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthSustain').addEventListener('input', e => { _synth.sustain = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthRelease').addEventListener('input', e => { _synth.release = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthCutoff').addEventListener('input', e => { _synth.filterCutoff = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthQ').addEventListener('input', e => { _synth.filterQ = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthFilterAttack').addEventListener('input', e => { _synth.filterAttack = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthFilterDecay').addEventListener('input', e => { _synth.filterDecay = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthFilterSustain').addEventListener('input', e => { _synth.filterSustain = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthFilterRelease').addEventListener('input', e => { _synth.filterRelease = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthAmpEnvEnabled').addEventListener('change', e => { _synth.ampEnvEnabled = e.target.checked; _synthUpdateGroupStates(); _clearPresetOnChange(); });
+      document.getElementById('synthFilterEnabled').addEventListener('change', e => { _synth.filterEnabled = e.target.checked; _synthUpdateGroupStates(); _clearPresetOnChange(); });
+      document.getElementById('synthFilterEnvEnabled').addEventListener('change', e => { _synth.filterEnvEnabled = e.target.checked; _synthUpdateGroupStates(); _clearPresetOnChange(); });
+      document.getElementById('synthLfoEnabled').addEventListener('change', e => { _synth.lfoEnabled = e.target.checked; _synthUpdateGroupStates(); _clearPresetOnChange(); });
+      document.getElementById('synthLfoTarget').addEventListener('change', e => { _synth.lfoTarget = e.target.value; _clearPresetOnChange(); });
+      document.getElementById('synthLfoWave').addEventListener('change', e => { _synth.lfoWave = e.target.value; _clearPresetOnChange(); });
+      document.getElementById('synthLfoRate').addEventListener('input', e => { _synth.lfoRate = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthLfoDepth').addEventListener('input', e => { _synth.lfoDepth = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
       document.getElementById('synthReset').addEventListener('click', _synthResetControls);
 
       /* Sync _synth state from DOM in case the browser restored form values after reload */
@@ -4597,6 +5163,11 @@
       _synth.ampEnvEnabled = document.getElementById('synthAmpEnvEnabled').checked;
       _synth.filterEnabled = document.getElementById('synthFilterEnabled').checked;
       _synth.filterEnvEnabled = document.getElementById('synthFilterEnvEnabled').checked;
+      _synth.lfoEnabled = document.getElementById('synthLfoEnabled').checked;
+      _synth.lfoTarget = document.getElementById('synthLfoTarget').value;
+      _synth.lfoWave = document.getElementById('synthLfoWave').value;
+      _synth.lfoRate = +document.getElementById('synthLfoRate').value;
+      _synth.lfoDepth = +document.getElementById('synthLfoDepth').value;
       _synthUpdateLabels();
       _synthUpdateGroupStates();
 
@@ -4761,6 +5332,33 @@
 
     let _activeVoices = [];
 
+    function _createLFO(ctx, target, baseValue, t0) {
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+
+      lfo.type = _synth.lfoWave;
+      lfo.frequency.value = _synth.lfoRate;
+
+      // Calculate modulation depth based on target parameter
+      let depth = 0;
+      if (_synth.lfoTarget === 'cutoff') {
+        // For cutoff: modulate around the base cutoff value
+        depth = baseValue * _synth.lfoDepth;
+      } else if (_synth.lfoTarget === 'q') {
+        // For Q: modulate around the base Q value
+        depth = baseValue * _synth.lfoDepth;
+      } else if (_synth.lfoTarget === 'pitch') {
+        // For pitch: depth in semitones (max ±12 semitones at 100% depth)
+        depth = 12 * _synth.lfoDepth;
+      }
+
+      lfoGain.gain.value = depth;
+      lfo.connect(lfoGain);
+      lfo.start(t0);
+
+      return { lfo, lfoGain };
+    }
+
     function _applyNoteOn(g, vol, t0) {
       const a = _synth.attack;
       const d = _synth.decay;
@@ -4835,6 +5433,9 @@
         }
 
         voice.osc.stop(now + maxRelease + 0.05);
+        if (voice.lfo) {
+          voice.lfo.stop(now + maxRelease + 0.05);
+        }
       });
 
       _activeVoices = [];
@@ -4864,6 +5465,8 @@
         }
 
         let tail = g;
+        let lfoNodes = null;
+
         if (_synth.filterEnabled) {
           const filt = ctx.createBiquadFilter();
           filt.type = 'lowpass';
@@ -4872,14 +5475,33 @@
           if (_synth.filterEnvEnabled) {
             _applyFilterNoteOn(filt, t0);
           }
+
+          // Apply LFO if enabled
+          if (_synth.lfoEnabled) {
+            if (_synth.lfoTarget === 'cutoff') {
+              lfoNodes = _createLFO(ctx, filt.frequency, _synth.filterCutoff, t0);
+              lfoNodes.lfoGain.connect(filt.frequency);
+            } else if (_synth.lfoTarget === 'q') {
+              lfoNodes = _createLFO(ctx, filt.Q, _synth.filterQ, t0);
+              lfoNodes.lfoGain.connect(filt.Q);
+            }
+          }
+
           g.connect(filt);
           tail = filt;
           osc._filt = filt;
         }
+
+        // Apply LFO to pitch if enabled and filter is not the target
+        if (_synth.lfoEnabled && _synth.lfoTarget === 'pitch') {
+          lfoNodes = _createLFO(ctx, osc.frequency, osc.frequency.value, t0);
+          lfoNodes.lfoGain.connect(osc.detune);
+        }
+
         osc.connect(g);
         tail.connect(_dest());
         osc.start(t0);
-        _activeVoices.push({ osc, gain: g, filter: osc._filt || null });
+        _activeVoices.push({ osc, gain: g, filter: osc._filt || null, lfo: lfoNodes?.lfo || null });
       });
     }
 
@@ -5318,6 +5940,9 @@
         }
 
         voice.osc.stop(now + maxRelease + 0.05);
+        if (voice.lfo) {
+          voice.lfo.stop(now + maxRelease + 0.05);
+        }
       });
     }
 
@@ -5347,6 +5972,8 @@
         }
 
         let tail = g;
+        let lfoNodes = null;
+
         if (_synth.filterEnabled) {
           const filt = _audioCtx.createBiquadFilter();
           filt.type = 'lowpass';
@@ -5355,14 +5982,33 @@
           if (_synth.filterEnvEnabled) {
             _applyFilterNoteOn(filt, now);
           }
+
+          // Apply LFO if enabled
+          if (_synth.lfoEnabled) {
+            if (_synth.lfoTarget === 'cutoff') {
+              lfoNodes = _createLFO(_audioCtx, filt.frequency, _synth.filterCutoff, now);
+              lfoNodes.lfoGain.connect(filt.frequency);
+            } else if (_synth.lfoTarget === 'q') {
+              lfoNodes = _createLFO(_audioCtx, filt.Q, _synth.filterQ, now);
+              lfoNodes.lfoGain.connect(filt.Q);
+            }
+          }
+
           g.connect(filt);
           tail = filt;
           osc._filt = filt;
         }
+
+        // Apply LFO to pitch if enabled and filter is not the target
+        if (_synth.lfoEnabled && _synth.lfoTarget === 'pitch') {
+          lfoNodes = _createLFO(_audioCtx, osc.frequency, osc.frequency.value, now);
+          lfoNodes.lfoGain.connect(osc.detune);
+        }
+
         osc.connect(g);
         tail.connect(_dest());
         osc.start(now);
-        voices.push({ osc, gain: g, filter: osc._filt || null });
+        voices.push({ osc, gain: g, filter: osc._filt || null, lfo: lfoNodes?.lfo || null });
       });
 
       return voices;
