@@ -542,6 +542,11 @@
     .collapsible-section[open] > summary::before {
       transform: rotate(90deg);
     }
+    /* ── MIDI keyboard selection ─────────────────────────────────── */
+    .card.midi-selected {
+      box-shadow: 0 0 0 2px var(--accent), 0 6px 18px rgba(56, 189, 248, 0.4);
+      background: rgba(56, 189, 248, 0.05);
+    }
     .scope-wrap {
       padding: 0 24px 8px;
       display: flex;
@@ -720,6 +725,46 @@
     </div>
     <canvas id="scopeCanvas"></canvas>
   </div>
+  </details>
+
+  <details class="collapsible-section">
+    <summary>MIDI Input</summary>
+    <div class="synth-panel" id="midiPanel">
+      <fieldset class="synth-group" id="midiGroup">
+        <legend><label><input type="checkbox" id="midiEnabled" /> Enable MIDI</label></legend>
+        <label>
+          <span>Device</span>
+          <select id="midiDevice">
+            <option value="">No MIDI devices</option>
+          </select>
+        </label>
+        <label>
+          <span>Channel <span class="synth-val" id="midiChannelVal">All</span></span>
+          <select id="midiChannel">
+            <option value="0">All Channels</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+          </select>
+        </label>
+      </fieldset>
+      <div style="width:100%;color:var(--muted);font-size:12px;padding:0 12px;">
+        Click on a chord set card to select it for MIDI playback. Selected card will glow.
+      </div>
+    </div>
   </details>
 
   <details class="collapsible-section">
@@ -5090,6 +5135,289 @@
 
     // Release notes if mouse/touch leaves the window
     document.addEventListener('mouseleave', _handleKeyUp);
+
+    /* ── MIDI Input ──────────────────────────────────────────────── */
+    let _midiAccess = null;
+    let _selectedMidiInput = null;
+    let _selectedKeyboardId = null;
+    let _midiChannel = 0; // 0 = all channels
+    let _midiNoteVoices = new Map(); // MIDI note number -> array of voices
+
+    async function _initMIDI() {
+      if (!navigator.requestMIDIAccess) {
+        console.warn('Web MIDI API not supported');
+        return;
+      }
+
+      try {
+        _midiAccess = await navigator.requestMIDIAccess();
+        _populateMIDIDevices();
+        _midiAccess.onstatechange = _populateMIDIDevices;
+      } catch (err) {
+        console.error('Failed to get MIDI access:', err);
+      }
+    }
+
+    function _populateMIDIDevices() {
+      const select = document.getElementById('midiDevice');
+      select.innerHTML = '';
+
+      if (!_midiAccess) {
+        select.innerHTML = '<option value="">MIDI not available</option>';
+        return;
+      }
+
+      const inputs = Array.from(_midiAccess.inputs.values());
+      if (inputs.length === 0) {
+        select.innerHTML = '<option value="">No MIDI devices</option>';
+        return;
+      }
+
+      inputs.forEach(input => {
+        const option = document.createElement('option');
+        option.value = input.id;
+        option.textContent = input.name;
+        select.appendChild(option);
+      });
+
+      // Auto-select first device if none selected
+      if (!_selectedMidiInput && inputs.length > 0) {
+        select.value = inputs[0].id;
+        _setMIDIInput(inputs[0].id);
+      }
+    }
+
+    function _setMIDIInput(deviceId) {
+      // Remove listener from previous device
+      if (_selectedMidiInput) {
+        _selectedMidiInput.onmidimessage = null;
+      }
+
+      if (!deviceId || !_midiAccess) {
+        _selectedMidiInput = null;
+        return;
+      }
+
+      _selectedMidiInput = _midiAccess.inputs.get(deviceId);
+      if (_selectedMidiInput) {
+        _selectedMidiInput.onmidimessage = _handleMIDIMessage;
+      }
+    }
+
+    function _handleMIDIMessage(event) {
+      const [status, note, velocity] = event.data;
+      const command = status & 0xF0;
+      const channel = (status & 0x0F) + 1; // 1-16
+
+      // Filter by channel if not "All Channels"
+      if (_midiChannel !== 0 && channel !== _midiChannel) {
+        return;
+      }
+
+      // Only handle if MIDI is enabled and a keyboard is selected
+      if (!document.getElementById('midiEnabled').checked || _selectedKeyboardId === null) {
+        return;
+      }
+
+      if (command === 0x90 && velocity > 0) {
+        // Note On
+        _handleMIDINoteOn(note);
+      } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+        // Note Off - only release voices for this specific MIDI note
+        _handleMIDINoteOff(note);
+      }
+    }
+
+    function _handleMIDINoteOn(midiNote) {
+      const set = chordSets.find(s => s.id === _selectedKeyboardId);
+      if (!set) return;
+
+      // Get transposition for this keyboard
+      const transposition = browserState.get(_selectedKeyboardId) ?? 0;
+
+      // Map MIDI note to chord index (0-11) based on pitch class only
+      // This ensures C maps to chord 0, C# to chord 1, etc., regardless of octave
+      const chordIndex = midiNote % 12;
+
+      // Calculate which octave the key is in relative to C4 (MIDI 60)
+      // C4 = octave 0, C5 = octave 1, C3 = octave -1, etc.
+      const midiOctaveOffset = Math.floor((midiNote - 60) / 12);
+
+      // Get the chord at this index (already transposed by the transposition slider)
+      const transposed = set.chords.map(ch => transposeChord(ch, transposition));
+      const chordName = transposed[chordIndex];
+
+      // Get the exact notes for this chord
+      // Combine the user's octave setting with the MIDI octave offset
+      const userOctave = octaveState.get(_selectedKeyboardId) ?? 0;
+      const totalOctaveShift = (userOctave + midiOctaveOffset) * 12;
+
+      // Use exact notes from CSV if in J6 mode
+      const source = noteSourceState.get(_selectedKeyboardId) ?? 'j6';
+      let notes = null;
+
+      if (source === 'j6') {
+        const setNotes = _exactNotes[set.number];
+        if (setNotes && setNotes[chordIndex]) {
+          notes = setNotes[chordIndex].map(n => n + transposition + totalOctaveShift);
+        }
+      }
+
+      // Fallback to interval-based parsing
+      if (!notes) {
+        notes = _parseChordNotes(chordName);
+        if (notes) {
+          notes = notes.map(n => n + totalOctaveShift);
+        }
+      }
+
+      if (notes && notes.length > 0) {
+        // If this MIDI note is already playing, release it first (retrigger)
+        if (_midiNoteVoices.has(midiNote)) {
+          _handleMIDINoteOff(midiNote);
+        }
+
+        // Start new voices and track them for this MIDI note
+        const voices = _startMIDINotes(notes);
+        _midiNoteVoices.set(midiNote, voices);
+      }
+    }
+
+    function _handleMIDINoteOff(midiNote) {
+      const voices = _midiNoteVoices.get(midiNote);
+      if (!voices || voices.length === 0) return;
+
+      _midiNoteVoices.delete(midiNote);
+
+      const ctx = _ctxSync();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      const r = Math.max(_synth.release, 0.01);
+      const fr = Math.max(_synth.filterRelease, 0.01);
+      let maxRelease = 0;
+
+      voices.forEach(voice => {
+        if (_synth.ampEnvEnabled) {
+          voice.gain.gain.cancelScheduledValues(now);
+          voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, _MIN_GAIN), now);
+          voice.gain.gain.exponentialRampToValueAtTime(_MIN_GAIN, now + r);
+          maxRelease = Math.max(maxRelease, r);
+        }
+
+        if (voice.filter && _synth.filterEnabled && _synth.filterEnvEnabled) {
+          voice.filter.frequency.cancelScheduledValues(now);
+          voice.filter.frequency.setValueAtTime(Math.max(voice.filter.frequency.value, _MIN_FILTER_FREQ), now);
+          voice.filter.frequency.linearRampToValueAtTime(_MIN_FILTER_FREQ, now + fr);
+          maxRelease = Math.max(maxRelease, fr);
+        }
+
+        if (!_synth.ampEnvEnabled) {
+          voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
+          voice.gain.gain.linearRampToValueAtTime(0, now + 0.02);
+          maxRelease = Math.max(maxRelease, 0.02);
+        }
+
+        voice.osc.stop(now + maxRelease + 0.05);
+      });
+    }
+
+    function _startMIDINotes(midiNotes) {
+      _initAudioCtx();
+
+      // Wait for context to be running before creating voices
+      if (_audioCtx.state !== 'running') {
+        _audioCtx.resume();
+      }
+
+      const now = _audioCtx.currentTime;
+      const vol = 0.22 / Math.sqrt(midiNotes.length);
+      const voices = [];
+
+      midiNotes.forEach(m => {
+        const osc = _audioCtx.createOscillator();
+        const g = _audioCtx.createGain();
+        osc.type = _synth.wave;
+        osc.frequency.value = _midiToFreq(m);
+
+        if (_synth.ampEnvEnabled) {
+          g.gain.value = _MIN_GAIN;
+          _applyNoteOn(g, vol, now);
+        } else {
+          g.gain.value = vol;
+        }
+
+        let tail = g;
+        if (_synth.filterEnabled) {
+          const filt = _audioCtx.createBiquadFilter();
+          filt.type = 'lowpass';
+          filt.frequency.value = _synth.filterCutoff;
+          filt.Q.value = _synth.filterQ;
+          if (_synth.filterEnvEnabled) {
+            _applyFilterNoteOn(filt, now);
+          }
+          g.connect(filt);
+          tail = filt;
+          osc._filt = filt;
+        }
+        osc.connect(g);
+        tail.connect(_dest());
+        osc.start(now);
+        voices.push({ osc, gain: g, filter: osc._filt || null });
+      });
+
+      return voices;
+    }
+
+    function _selectKeyboard(cardId) {
+      // Remove selection from all cards
+      document.querySelectorAll('.card').forEach(card => {
+        card.classList.remove('midi-selected');
+      });
+
+      // Select the clicked card
+      _selectedKeyboardId = cardId;
+      const card = document.querySelector(`[data-card-id="${cardId}"]`);
+      if (card) {
+        card.classList.add('midi-selected');
+      }
+    }
+
+    // Initialize MIDI controls
+    document.getElementById('midiEnabled').addEventListener('change', e => {
+      const group = document.getElementById('midiGroup');
+      group.classList.toggle('disabled-group', !e.target.checked);
+
+      if (e.target.checked) {
+        _initMIDI();
+      } else {
+        _selectedKeyboardId = null;
+        document.querySelectorAll('.card').forEach(card => {
+          card.classList.remove('midi-selected');
+        });
+      }
+    });
+
+    document.getElementById('midiDevice').addEventListener('change', e => {
+      _setMIDIInput(e.target.value);
+    });
+
+    document.getElementById('midiChannel').addEventListener('change', e => {
+      _midiChannel = parseInt(e.target.value, 10);
+      document.getElementById('midiChannelVal').textContent = 
+        _midiChannel === 0 ? 'All' : _midiChannel.toString();
+    });
+
+    // Handle keyboard card selection (click anywhere on the card)
+    browserHost.addEventListener('click', evt => {
+      const card = evt.target.closest('.card[data-card-id]');
+      if (card && document.getElementById('midiEnabled').checked) {
+        const cardId = parseInt(card.dataset.cardId, 10);
+        _selectKeyboard(cardId);
+      }
+    });
+
+    // Initialize MIDI group state
+    document.getElementById('midiGroup').classList.add('disabled-group');
   </script>
 </body>
 </html>
