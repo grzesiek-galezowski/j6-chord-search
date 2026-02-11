@@ -456,17 +456,24 @@
       letter-spacing: 0.5px;
       color: var(--accent);
       padding: 0 6px;
+      margin: 0;
     }
     .synth-group legend label {
-      display: inline-flex;
+      display: flex;
+      flex-direction: row;
       align-items: center;
-      gap: 5px;
+      gap: 6px;
       cursor: pointer;
+      margin: 0;
     }
     .synth-group legend label input[type="checkbox"] {
       accent-color: var(--accent);
       margin: 0;
       cursor: pointer;
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      align-self: center;
     }
     .synth-group.disabled-group label:not(legend label) {
       opacity: 0.35;
@@ -621,7 +628,7 @@
   </header>
 
   <details class="collapsible-section">
-    <summary>Synthesizer</summary>
+    <summary>Synth engine</summary>
     <div class="synth-panel" id="synthPanel">
     <fieldset class="synth-group">
       <legend>Oscillator</legend>
@@ -629,7 +636,7 @@
         <span>Wave</span>
         <select id="synthWave">
           <option value="triangle">Triangle</option>
-          <option value="sawtooth">Sawtooth</option>
+          <option value="sawtooth" selected>Sawtooth</option>
           <option value="square">Square</option>
           <option value="sine">Sine</option>
         </select>
@@ -643,28 +650,28 @@
         <input type="range" id="synthAttack" min="0.001" max="1" step="0.001" value="0.03" />
       </label>
       <label>
-        <span>Decay <span class="synth-val" id="synthDVal">0.00</span></span>
-        <input type="range" id="synthDecay" min="0" max="1" step="0.01" value="0" />
+        <span>Decay <span class="synth-val" id="synthDVal">1.00s</span></span>
+        <input type="range" id="synthDecay" min="0" max="1" step="0.01" value="1.00" />
       </label>
       <label>
-        <span>Sustain <span class="synth-val" id="synthSVal">1.00</span></span>
-        <input type="range" id="synthSustain" min="0" max="1" step="0.01" value="1" />
+        <span>Sustain <span class="synth-val" id="synthSVal">0%</span></span>
+        <input type="range" id="synthSustain" min="0" max="1" step="0.01" value="0" />
       </label>
       <label>
-        <span>Release <span class="synth-val" id="synthRVal">0.48</span></span>
-        <input type="range" id="synthRelease" min="0.01" max="3" step="0.01" value="0.48" />
+        <span>Release <span class="synth-val" id="synthRVal">0.01s</span></span>
+        <input type="range" id="synthRelease" min="0.01" max="3" step="0.01" value="0.01" />
       </label>
     </fieldset>
 
     <fieldset class="synth-group" id="filterGroup">
       <legend><label><input type="checkbox" id="synthFilterEnabled" checked /> Filter</label></legend>
       <label>
-        <span>Cutoff <span class="synth-val" id="synthCutoffVal">20000</span></span>
-        <input type="range" id="synthCutoff" min="100" max="20000" step="1" value="20000" />
+        <span>Cutoff <span class="synth-val" id="synthCutoffVal">2943</span></span>
+        <input type="range" id="synthCutoff" min="100" max="20000" step="1" value="2943" />
       </label>
       <label>
-        <span>Q <span class="synth-val" id="synthQVal">0.5</span></span>
-        <input type="range" id="synthQ" min="0.1" max="20" step="0.1" value="0.5" />
+        <span>Q <span class="synth-val" id="synthQVal">6.3</span></span>
+        <input type="range" id="synthQ" min="0.1" max="20" step="0.1" value="6.3" />
       </label>
     </fieldset>
 
@@ -675,16 +682,16 @@
         <input type="range" id="synthFilterAttack" min="0" max="2" step="0.01" value="0" />
       </label>
       <label>
-        <span>Decay <span class="synth-val" id="synthFDVal">0.00</span></span>
-        <input type="range" id="synthFilterDecay" min="0" max="2" step="0.01" value="0" />
+        <span>Decay <span class="synth-val" id="synthFDVal">0.29s</span></span>
+        <input type="range" id="synthFilterDecay" min="0" max="2" step="0.01" value="0.29" />
       </label>
       <label>
-        <span>Sustain <span class="synth-val" id="synthFSVal">1.00</span></span>
-        <input type="range" id="synthFilterSustain" min="0" max="1" step="0.01" value="1" />
+        <span>Sustain <span class="synth-val" id="synthFSVal">0%</span></span>
+        <input type="range" id="synthFilterSustain" min="0" max="1" step="0.01" value="0" />
       </label>
       <label>
-        <span>Release <span class="synth-val" id="synthFRVal">0.48</span></span>
-        <input type="range" id="synthFilterRelease" min="0.01" max="3" step="0.01" value="0.48" />
+        <span>Release <span class="synth-val" id="synthFRVal">0.01s</span></span>
+        <input type="range" id="synthFilterRelease" min="0.01" max="3" step="0.01" value="0.01" />
       </label>
     </fieldset>
 
@@ -715,29 +722,35 @@
   </div>
   </details>
 
-  <div class="container">
-    <section class="controls">
-      <input id="search" type="text" placeholder="Search chords (use * or ? wildcards, space/comma separated)" autocomplete="off" />
-      <button id="clear">Clear</button>
-      <div class="hint">Checks every progression across 12 semitone transpositions. Example: <code>G*</code> <code>*m7</code> <code>D?/F#</code></div>
-    </section>
+  <details class="collapsible-section">
+    <summary>Search</summary>
+    <div class="container">
+      <section class="controls">
+        <input id="search" type="text" placeholder="Search chords (use * or ? wildcards, space/comma separated)" autocomplete="off" />
+        <button id="clear">Clear</button>
+        <div class="hint">Checks every progression across 12 semitone transpositions. Example: <code>G*</code> <code>*m7</code> <code>D?/F#</code></div>
+      </section>
 
-    <section>
-      <div class="card" style="padding:12px 14px 10px;">
-        <div class="card-header" style="margin-bottom:6px;">
-          <h2 style="margin:0; font-size:16px;">Search results</h2>
-          <span class="summary" id="resultSummary"></span>
+      <section>
+        <div class="card" style="padding:12px 14px 10px;">
+          <div class="card-header" style="margin-bottom:6px;">
+            <h2 style="margin:0; font-size:16px;">Search results</h2>
+            <span class="summary" id="resultSummary"></span>
+          </div>
+          <div id="results" class="grid"></div>
         </div>
-        <div id="results" class="grid"></div>
-      </div>
-    </section>
+      </section>
+    </div>
+  </details>
 
-    <section>
-      <h2>Browse all progressions</h2>
-      <p class="summary">Adjust transposition per row to audition in different keys.</p>
-      <div id="browser" class="grid"></div>
-    </section>
-  </div>
+  <details class="collapsible-section" open>
+    <summary>Browse</summary>
+    <div class="container">
+      <section>
+        <div id="browser" class="grid"></div>
+      </section>
+    </div>
+  </details>
 
   <!-- Chord Popup -->
   <div id="chord-popup">
@@ -4078,7 +4091,6 @@
         ? `<div>
             <input class="transposer" type="range" min="0" max="11" value="${transposition}" data-id="${set.id}" />
             <div class="transposer-info">
-              <span class="summary">Drag to transpose this row</span>
               ${toggleHtml}
             </div>
           </div>`
@@ -4451,17 +4463,17 @@
 
     /* ── Web Audio playback ──────────────────────────────────────── */
     const _synthDefaults = {
-      wave: 'triangle',
+      wave: 'sawtooth',
       attack: 0.03,
-      decay: 0,
-      sustain: 1,
-      release: 0.48,
-      filterCutoff: 20000,
-      filterQ: 0.5,
+      decay: 1.00,
+      sustain: 0,
+      release: 1.01,
+      filterCutoff: 2943,
+      filterQ: 6.3,
       filterAttack: 0,
-      filterDecay: 0,
-      filterSustain: 1,
-      filterRelease: 0.48,
+      filterDecay: 0.29,
+      filterSustain: 0,
+      filterRelease: 1.01,
       ampEnvEnabled: true,
       filterEnabled: true,
       filterEnvEnabled: true
@@ -4496,16 +4508,16 @@
     }
 
     function _synthUpdateLabels() {
-      document.getElementById('synthAVal').textContent = Number(_synth.attack).toFixed(2);
-      document.getElementById('synthDVal').textContent = Number(_synth.decay).toFixed(2);
-      document.getElementById('synthSVal').textContent = Number(_synth.sustain).toFixed(2);
-      document.getElementById('synthRVal').textContent = Number(_synth.release).toFixed(2);
+      document.getElementById('synthAVal').textContent = Number(_synth.attack).toFixed(2) + 's';
+      document.getElementById('synthDVal').textContent = Number(_synth.decay).toFixed(2) + 's';
+      document.getElementById('synthSVal').textContent = Math.round(_synth.sustain * 100) + '%';
+      document.getElementById('synthRVal').textContent = Number(_synth.release).toFixed(2) + 's';
       document.getElementById('synthCutoffVal').textContent = Math.round(_synth.filterCutoff);
       document.getElementById('synthQVal').textContent = Number(_synth.filterQ).toFixed(1);
-      document.getElementById('synthFAVal').textContent = Number(_synth.filterAttack).toFixed(2);
-      document.getElementById('synthFDVal').textContent = Number(_synth.filterDecay).toFixed(2);
-      document.getElementById('synthFSVal').textContent = Number(_synth.filterSustain).toFixed(2);
-      document.getElementById('synthFRVal').textContent = Number(_synth.filterRelease).toFixed(2);
+      document.getElementById('synthFAVal').textContent = Number(_synth.filterAttack).toFixed(2) + 's';
+      document.getElementById('synthFDVal').textContent = Number(_synth.filterDecay).toFixed(2) + 's';
+      document.getElementById('synthFSVal').textContent = Math.round(_synth.filterSustain * 100) + '%';
+      document.getElementById('synthFRVal').textContent = Number(_synth.filterRelease).toFixed(2) + 's';
     }
 
     (function _initSynthControls() {
