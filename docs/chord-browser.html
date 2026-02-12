@@ -4246,7 +4246,7 @@
         <button class="octave-btn down" onclick="changeOctave(${set.id}, -1)" aria-label="Octave Down">▼</button>
       </div>`;
 
-      return `<div class="card" data-card-id="${set.id}">
+      return `<div class="card" data-card-id="${set.id}" data-transposition="${transposition}">
         ${header}
         ${slider}
         <div class="keyboard-wrapper">
@@ -5818,6 +5818,7 @@
     let _midiAccess = null;
     let _selectedMidiInput = null;
     let _selectedKeyboardId = null;
+    let _selectedKeyboardTransposition = null;
     let _midiChannel = 0; // 0 = all channels
     let _midiNoteVoices = new Map(); // MIDI note number -> array of voices
 
@@ -5911,7 +5912,7 @@
       if (!set) return;
 
       // Get transposition for this keyboard
-      const transposition = browserState.get(_selectedKeyboardId) ?? 0;
+      const transposition = _selectedKeyboardTransposition ?? (browserState.get(_selectedKeyboardId) ?? 0);
 
       // Map MIDI note to chord index (0-11) based on pitch class only
       // This ensures C maps to chord 0, C# to chord 1, etc., regardless of octave
@@ -6082,7 +6083,7 @@
       return voices;
     }
 
-    function _selectKeyboard(cardId) {
+    function _selectKeyboard(cardId, transpositionOverride = null) {
       // Remove selection from all cards
       document.querySelectorAll('.card').forEach(card => {
         card.classList.remove('midi-selected');
@@ -6090,7 +6091,11 @@
 
       // Select the clicked card
       _selectedKeyboardId = cardId;
-      const card = document.querySelector(`[data-card-id="${cardId}"]`);
+      _selectedKeyboardTransposition = Number.isFinite(transpositionOverride) ? transpositionOverride : null;
+      const cardSelector = Number.isFinite(transpositionOverride)
+        ? `[data-card-id="${cardId}"][data-transposition="${transpositionOverride}"]`
+        : `[data-card-id="${cardId}"]`;
+      const card = document.querySelector(cardSelector);
       if (card) {
         card.classList.add('midi-selected');
       }
@@ -6126,7 +6131,16 @@
       const card = evt.target.closest('.card[data-card-id]');
       if (card && document.getElementById('midiEnabled').checked) {
         const cardId = parseInt(card.dataset.cardId, 10);
-        _selectKeyboard(cardId);
+        _selectKeyboard(cardId, null);
+      }
+    });
+
+    resultsHost.addEventListener('click', evt => {
+      const card = evt.target.closest('.card[data-card-id]');
+      if (card && document.getElementById('midiEnabled').checked) {
+        const cardId = parseInt(card.dataset.cardId, 10);
+        const transposition = parseInt(card.dataset.transposition, 10);
+        _selectKeyboard(cardId, Number.isNaN(transposition) ? null : transposition);
       }
     });
 
