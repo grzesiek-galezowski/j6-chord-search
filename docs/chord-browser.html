@@ -684,6 +684,14 @@
           <option value="sine">Sine</option>
         </select>
       </label>
+      <label>
+        <span>Voices <span class="synth-val" id="synthUnisonVoicesVal">1</span></span>
+        <input type="range" id="synthUnisonVoices" min="1" max="8" step="1" value="1" />
+      </label>
+      <label>
+        <span>Detune <span class="synth-val" id="synthUnisonDetuneVal">10 ct</span></span>
+        <input type="range" id="synthUnisonDetune" min="0" max="100" step="1" value="10" />
+      </label>
     </fieldset>
 
     <fieldset class="synth-group" id="ampEnvGroup">
@@ -4576,6 +4584,8 @@
     /* ── Web Audio playback ──────────────────────────────────────── */
     const _synthDefaults = {
       wave: 'sawtooth',
+      unisonVoices: 1,
+      unisonDetune: 10,
       attack: 0.03,
       decay: 1.00,
       sustain: 0,
@@ -4707,6 +4717,8 @@
       // ── Pads ──────────────────────────────────────────────────────
       warmPad: {
         wave: 'sawtooth',
+        unisonVoices: 5,
+        unisonDetune: 15,
         attack: 0.8,
         decay: 0.5,
         sustain: 0.7,
@@ -4728,6 +4740,8 @@
       },
       brightPad: {
         wave: 'triangle',
+        unisonVoices: 3,
+        unisonDetune: 12,
         attack: 0.5,
         decay: 0.3,
         sustain: 0.8,
@@ -4749,6 +4763,8 @@
       },
       choirPad: {
         wave: 'sine',
+        unisonVoices: 5,
+        unisonDetune: 20,
         attack: 1.2,
         decay: 0.4,
         sustain: 0.9,
@@ -4770,6 +4786,8 @@
       },
       stringPad: {
         wave: 'sawtooth',
+        unisonVoices: 5,
+        unisonDetune: 18,
         attack: 0.6,
         decay: 0.4,
         sustain: 0.75,
@@ -4791,6 +4809,8 @@
       },
       darkPad: {
         wave: 'triangle',
+        unisonVoices: 3,
+        unisonDetune: 10,
         attack: 1.0,
         decay: 0.6,
         sustain: 0.85,
@@ -4814,6 +4834,8 @@
       // ── Leads ─────────────────────────────────────────────────────
       classicLead: {
         wave: 'sawtooth',
+        unisonVoices: 2,
+        unisonDetune: 8,
         attack: 0.01,
         decay: 0.2,
         sustain: 0.6,
@@ -4856,6 +4878,8 @@
       },
       smoothLead: {
         wave: 'triangle',
+        unisonVoices: 3,
+        unisonDetune: 10,
         attack: 0.05,
         decay: 0.25,
         sustain: 0.65,
@@ -4877,6 +4901,8 @@
       },
       vintageLead: {
         wave: 'sawtooth',
+        unisonVoices: 2,
+        unisonDetune: 12,
         attack: 0.02,
         decay: 0.4,
         sustain: 0.5,
@@ -4898,6 +4924,8 @@
       },
       synthLead: {
         wave: 'square',
+        unisonVoices: 3,
+        unisonDetune: 15,
         attack: 0.01,
         decay: 0.18,
         sustain: 0.68,
@@ -4921,6 +4949,8 @@
       // ── Experimental ──────────────────────────────────────────────
       wobble: {
         wave: 'sawtooth',
+        unisonVoices: 3,
+        unisonDetune: 20,
         attack: 0.01,
         decay: 0.3,
         sustain: 0.7,
@@ -4963,6 +4993,8 @@
       },
       resonantSweep: {
         wave: 'sawtooth',
+        unisonVoices: 2,
+        unisonDetune: 8,
         attack: 0.005,
         decay: 0.25,
         sustain: 0.6,
@@ -4984,6 +5016,8 @@
       },
       phaser: {
         wave: 'square',
+        unisonVoices: 3,
+        unisonDetune: 15,
         attack: 0.03,
         decay: 0.3,
         sustain: 0.65,
@@ -5040,11 +5074,13 @@
       if (!presetName || !_synthPresets[presetName]) return;
 
       const preset = _synthPresets[presetName];
-      Object.assign(_synth, preset);
+      Object.assign(_synth, _synthDefaults, preset);
       _currentPreset = presetName;
 
       // Update all UI controls
       document.getElementById('synthWave').value = _synth.wave;
+      document.getElementById('synthUnisonVoices').value = _synth.unisonVoices;
+      document.getElementById('synthUnisonDetune').value = _synth.unisonDetune;
       document.getElementById('synthAttack').value = _synth.attack;
       document.getElementById('synthDecay').value = _synth.decay;
       document.getElementById('synthSustain').value = _synth.sustain;
@@ -5073,6 +5109,8 @@
       _currentPreset = ''; // Clear current preset
       document.getElementById('synthPreset').value = ''; // Reset dropdown
       document.getElementById('synthWave').value = _synth.wave;
+      document.getElementById('synthUnisonVoices').value = _synth.unisonVoices;
+      document.getElementById('synthUnisonDetune').value = _synth.unisonDetune;
       document.getElementById('synthAttack').value = _synth.attack;
       document.getElementById('synthDecay').value = _synth.decay;
       document.getElementById('synthSustain').value = _synth.sustain;
@@ -5108,6 +5146,8 @@
       document.getElementById('synthFRVal').textContent = Number(_synth.filterRelease).toFixed(2) + 's';
       document.getElementById('synthLfoRateVal').textContent = Number(_synth.lfoRate).toFixed(1) + ' Hz';
       document.getElementById('synthLfoDepthVal').textContent = Math.round(_synth.lfoDepth * 100) + '%';
+      document.getElementById('synthUnisonVoicesVal').textContent = _synth.unisonVoices;
+      document.getElementById('synthUnisonDetuneVal').textContent = _synth.unisonDetune + ' ct';
     }
 
     (function _initSynthControls() {
@@ -5128,6 +5168,8 @@
       }
 
       document.getElementById('synthWave').addEventListener('input', e => { _synth.wave = e.target.value; _clearPresetOnChange(); });
+      document.getElementById('synthUnisonVoices').addEventListener('input', e => { _synth.unisonVoices = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
+      document.getElementById('synthUnisonDetune').addEventListener('input', e => { _synth.unisonDetune = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
       document.getElementById('synthAttack').addEventListener('input', e => { _synth.attack = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
       document.getElementById('synthDecay').addEventListener('input', e => { _synth.decay = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
       document.getElementById('synthSustain').addEventListener('input', e => { _synth.sustain = +e.target.value; _synthUpdateLabels(); _clearPresetOnChange(); });
@@ -5150,6 +5192,8 @@
 
       /* Sync _synth state from DOM in case the browser restored form values after reload */
       _synth.wave = document.getElementById('synthWave').value;
+      _synth.unisonVoices = +document.getElementById('synthUnisonVoices').value;
+      _synth.unisonDetune = +document.getElementById('synthUnisonDetune').value;
       _synth.attack = +document.getElementById('synthAttack').value;
       _synth.decay = +document.getElementById('synthDecay').value;
       _synth.sustain = +document.getElementById('synthSustain').value;
@@ -5432,7 +5476,7 @@
           maxRelease = Math.max(maxRelease, 0.02);
         }
 
-        voice.osc.stop(now + maxRelease + 0.05);
+        voice.oscs.forEach(o => o.stop(now + maxRelease + 0.05));
         if (voice.lfo) {
           voice.lfo.stop(now + maxRelease + 0.05);
         }
@@ -5446,16 +5490,28 @@
        ctx.currentTime is reliably advancing. */
     function _createVoices(ctx, midiNotes, strumDelay) {
       const now = ctx.currentTime;
-      const vol = 0.22 / Math.sqrt(midiNotes.length);
+      const vol = 0.22 / Math.sqrt(midiNotes.length * _synth.unisonVoices);
       const notes = strumDelay > 0
         ? midiNotes.slice().sort((a, b) => a - b)
         : midiNotes;
       notes.forEach((m, i) => {
         const t0 = now + i * strumDelay;
-        const osc = ctx.createOscillator();
+        const freq = _midiToFreq(m);
         const g   = ctx.createGain();
-        osc.type = _synth.wave;
-        osc.frequency.value = _midiToFreq(m);
+
+        // Create unison oscillators
+        const numUni = _synth.unisonVoices;
+        const oscs = [];
+        for (let u = 0; u < numUni; u++) {
+          const osc = ctx.createOscillator();
+          osc.type = _synth.wave;
+          osc.frequency.value = freq;
+          if (numUni > 1) {
+            osc.detune.value = (u / (numUni - 1) - 0.5) * _synth.unisonDetune;
+          }
+          osc.connect(g);
+          oscs.push(osc);
+        }
 
         if (_synth.ampEnvEnabled) {
           g.gain.value = _MIN_GAIN;
@@ -5466,6 +5522,7 @@
 
         let tail = g;
         let lfoNodes = null;
+        let filterNode = null;
 
         if (_synth.filterEnabled) {
           const filt = ctx.createBiquadFilter();
@@ -5489,19 +5546,18 @@
 
           g.connect(filt);
           tail = filt;
-          osc._filt = filt;
+          filterNode = filt;
         }
 
-        // Apply LFO to pitch if enabled and filter is not the target
+        // Apply LFO to pitch if enabled
         if (_synth.lfoEnabled && _synth.lfoTarget === 'pitch') {
-          lfoNodes = _createLFO(ctx, osc.frequency, osc.frequency.value, t0);
-          lfoNodes.lfoGain.connect(osc.detune);
+          lfoNodes = _createLFO(ctx, null, 0, t0);
+          oscs.forEach(o => lfoNodes.lfoGain.connect(o.detune));
         }
 
-        osc.connect(g);
         tail.connect(_dest());
-        osc.start(t0);
-        _activeVoices.push({ osc, gain: g, filter: osc._filt || null, lfo: lfoNodes?.lfo || null });
+        oscs.forEach(o => o.start(t0));
+        _activeVoices.push({ oscs, gain: g, filter: filterNode, lfo: lfoNodes?.lfo || null });
       });
     }
 
@@ -5939,7 +5995,7 @@
           maxRelease = Math.max(maxRelease, 0.02);
         }
 
-        voice.osc.stop(now + maxRelease + 0.05);
+        voice.oscs.forEach(o => o.stop(now + maxRelease + 0.05));
         if (voice.lfo) {
           voice.lfo.stop(now + maxRelease + 0.05);
         }
@@ -5955,14 +6011,26 @@
       }
 
       const now = _audioCtx.currentTime;
-      const vol = 0.22 / Math.sqrt(midiNotes.length);
+      const vol = 0.22 / Math.sqrt(midiNotes.length * _synth.unisonVoices);
       const voices = [];
 
       midiNotes.forEach(m => {
-        const osc = _audioCtx.createOscillator();
+        const freq = _midiToFreq(m);
         const g = _audioCtx.createGain();
-        osc.type = _synth.wave;
-        osc.frequency.value = _midiToFreq(m);
+
+        // Create unison oscillators
+        const numUni = _synth.unisonVoices;
+        const oscs = [];
+        for (let u = 0; u < numUni; u++) {
+          const osc = _audioCtx.createOscillator();
+          osc.type = _synth.wave;
+          osc.frequency.value = freq;
+          if (numUni > 1) {
+            osc.detune.value = (u / (numUni - 1) - 0.5) * _synth.unisonDetune;
+          }
+          osc.connect(g);
+          oscs.push(osc);
+        }
 
         if (_synth.ampEnvEnabled) {
           g.gain.value = _MIN_GAIN;
@@ -5973,6 +6041,7 @@
 
         let tail = g;
         let lfoNodes = null;
+        let filterNode = null;
 
         if (_synth.filterEnabled) {
           const filt = _audioCtx.createBiquadFilter();
@@ -5996,19 +6065,18 @@
 
           g.connect(filt);
           tail = filt;
-          osc._filt = filt;
+          filterNode = filt;
         }
 
-        // Apply LFO to pitch if enabled and filter is not the target
+        // Apply LFO to pitch if enabled
         if (_synth.lfoEnabled && _synth.lfoTarget === 'pitch') {
-          lfoNodes = _createLFO(_audioCtx, osc.frequency, osc.frequency.value, now);
-          lfoNodes.lfoGain.connect(osc.detune);
+          lfoNodes = _createLFO(_audioCtx, null, 0, now);
+          oscs.forEach(o => lfoNodes.lfoGain.connect(o.detune));
         }
 
-        osc.connect(g);
         tail.connect(_dest());
-        osc.start(now);
-        voices.push({ osc, gain: g, filter: osc._filt || null, lfo: lfoNodes?.lfo || null });
+        oscs.forEach(o => o.start(now));
+        voices.push({ oscs, gain: g, filter: filterNode, lfo: lfoNodes?.lfo || null });
       });
 
       return voices;
