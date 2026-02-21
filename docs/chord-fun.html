@@ -28,6 +28,7 @@
     .controls {
       margin-bottom: 20px;
       display: flex;
+      flex-wrap: wrap;
       gap: 20px;
       align-items: center;
     }
@@ -37,6 +38,9 @@
     #piano {
       border: 1px solid black;
       background: #1e293b;
+      max-width: 100%;
+      height: auto;
+      touch-action: none;
     }
     .active-modes {
       color: #38bdf8;
@@ -109,6 +113,17 @@
     }
     #splash-screen p {
       color: #e5e7eb;
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      .control-group {
+        min-width: 100%;
+      }
+      .synth-controls {
+        gap: 10px;
+      }
     }
   </style>
 </head>
@@ -805,8 +820,10 @@
     // Mouse interaction for piano
     canvas.addEventListener('mousedown', (e) => {
       const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
       const note = getNoteFromPos(x, y);
       if (note !== null) {
         noteOn(note);
@@ -829,6 +846,69 @@
         delete canvas.dataset.activeNote;
       }
     });
+
+    // Touch interaction for piano
+    const activeTouches = new Map();
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const x = (touch.clientX - rect.left) * scaleX;
+        const y = (touch.clientY - rect.top) * scaleY;
+        const note = getNoteFromPos(x, y);
+        if (note !== null) {
+          noteOn(note);
+          activeTouches.set(touch.identifier, note);
+        }
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const x = (touch.clientX - rect.left) * scaleX;
+        const y = (touch.clientY - rect.top) * scaleY;
+        const currentNote = getNoteFromPos(x, y);
+        const prevNote = activeTouches.get(touch.identifier);
+
+        if (currentNote !== prevNote) {
+          if (prevNote !== undefined && prevNote !== null) {
+            noteOff(prevNote);
+          }
+          if (currentNote !== null) {
+            noteOn(currentNote);
+            activeTouches.set(touch.identifier, currentNote);
+          } else {
+            activeTouches.delete(touch.identifier);
+          }
+        }
+      }
+    }, { passive: false });
+
+    const handleTouchEnd = (e) => {
+      e.preventDefault();
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        const note = activeTouches.get(touch.identifier);
+        if (note !== undefined && note !== null) {
+          noteOff(note);
+          activeTouches.delete(touch.identifier);
+        }
+      }
+    };
+
+    canvas.addEventListener('touchend', handleTouchEnd);
+    canvas.addEventListener('touchcancel', handleTouchEnd);
 
     function getNoteFromPos(x, y) {
       // Check black keys first
