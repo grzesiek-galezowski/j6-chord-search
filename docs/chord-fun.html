@@ -35,12 +35,29 @@
     .status {
       margin-bottom: 10px;
     }
-    #piano {
+    .piano-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+    }
+    canvas {
       border: 1px solid black;
       background: #1e293b;
       max-width: 100%;
-      height: auto;
       touch-action: none;
+    }
+    #piano-control {
+      width: 100%;
+      max-width: 800px;
+      height: 20vh;
+      min-height: 100px;
+    }
+    #piano-play {
+      width: 100%;
+      max-width: 1000px;
+      height: 20vh;
+      min-height: 100px;
     }
     .active-modes {
       color: #38bdf8;
@@ -214,7 +231,10 @@
       <div>Active Chord Mode: <span id="active-chord" class="active-modes">None</span></div>
       <div>Active Extensions: <span id="active-exts" class="active-modes">None</span></div>
     </div>
-    <canvas id="piano" width="630" height="150"></canvas>
+    <div class="piano-container">
+      <canvas id="piano-control" width="420" height="150"></canvas>
+      <canvas id="piano-play" width="630" height="150"></canvas>
+    </div>
   </div>
   <script>
     // Audio Context
@@ -644,98 +664,117 @@
     }
 
     // Piano drawing setup
-    const canvas = document.getElementById('piano');
-    const ctx = canvas.getContext('2d');
-    const startNote = 48; // C2
-    const endNote = 83;   // B4 (3 octaves)
-    const whiteKeyWidth = 30;
-    const blackKeyWidth = 18;
-    const blackKeyHeight = 90;
-    const whiteKeyHeight = 150;
-    const blackOffsets = [30, 60, 120, 150, 180]; // Centers for C#, D#, F#, G#, A# in each octave
+    const canvasControl = document.getElementById('piano-control');
+    const ctxControl = canvasControl.getContext('2d');
+    const canvasPlay = document.getElementById('piano-play');
+    const ctxPlay = canvasPlay.getContext('2d');
+
+    const startNoteControl = 48; // C2
+    const endNoteControl = 59;   // B2 (1 octave)
+    const startNotePlay = 60;    // C3
+    const endNotePlay = 83;      // B4 (2 octaves)
+
+    // Base dimensions for drawing logic (will scale via CSS)
+    const whiteKeyWidthControl = 60; // Wider for control
+    const blackKeyWidthControl = 36;
+    const blackKeyHeightControl = 90;
+    const whiteKeyHeightControl = 150;
+    const blackOffsetsControl = [60, 120, 240, 300, 360]; // Centers for C#, D#, F#, G#, A#
+
+    const whiteKeyWidthPlay = 45; // Wider than original, but less than control
+    const blackKeyWidthPlay = 27;
+    const blackKeyHeightPlay = 90;
+    const whiteKeyHeightPlay = 150;
+    const blackOffsetsPlay = [45, 90, 180, 225, 270]; // Centers for C#, D#, F#, G#, A#
 
     function drawPiano() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Draw Control Piano
+      ctxControl.clearRect(0, 0, canvasControl.width, canvasControl.height);
 
-      // Draw white keys (21 keys for 3 octaves)
-      for (let i = 0; i < 21; i++) {
-        const x = i * whiteKeyWidth;
+      // Draw white keys (7 keys for 1 octave)
+      for (let i = 0; i < 7; i++) {
+        const x = i * whiteKeyWidthControl;
+        const noteOffset = [0, 2, 4, 5, 7, 9, 11][i];
+        const note = startNoteControl + noteOffset;
+
+        let isActiveControl = false;
+        if (chordModes[note] && activeChordMode === chordModes[note]) isActiveControl = true;
+        if (chordExtensions[note] && activeExtensions.has(chordExtensions[note])) isActiveControl = true;
+        if (chordInversions[note] && activeInversions.has(chordInversions[note])) isActiveControl = true;
+
+        ctxControl.fillStyle = (pressedNotes.has(note) || isActiveControl) ? 'yellow' : '#e2e8f0';
+        ctxControl.fillRect(x, 0, whiteKeyWidthControl, whiteKeyHeightControl);
+        ctxControl.strokeRect(x, 0, whiteKeyWidthControl, whiteKeyHeightControl);
+
+        // Label control keys
+        ctxControl.fillStyle = 'black';
+        ctxControl.font = '14px monospace';
+        if (chordModes[note]) {
+          ctxControl.fillText(chordModes[note].name.substring(0, 3), x + 5, whiteKeyHeightControl - 15);
+        } else if (chordExtensions[note]) {
+          ctxControl.fillText(chordExtensions[note].name, x + 10, whiteKeyHeightControl - 15);
+        } else if (chordInversions[note]) {
+          ctxControl.fillText(chordInversions[note].name, x + 5, whiteKeyHeightControl - 15);
+        }
+      }
+
+      // Draw black keys (5 keys for 1 octave)
+      const blackNotesControl = [1, 3, 6, 8, 10];
+      for (let i = 0; i < 5; i++) {
+        const note = startNoteControl + blackNotesControl[i];
+        const x = blackOffsetsControl[i] - blackKeyWidthControl / 2;
+
+        let isActiveControl = false;
+        if (chordModes[note] && activeChordMode === chordModes[note]) isActiveControl = true;
+        if (chordExtensions[note] && activeExtensions.has(chordExtensions[note])) isActiveControl = true;
+        if (chordInversions[note] && activeInversions.has(chordInversions[note])) isActiveControl = true;
+
+        ctxControl.fillStyle = (pressedNotes.has(note) || isActiveControl) ? 'yellow' : 'black';
+        ctxControl.fillRect(x, 0, blackKeyWidthControl, blackKeyHeightControl);
+
+        // Label control keys
+        ctxControl.fillStyle = 'white';
+        ctxControl.font = '12px monospace';
+        if (chordModes[note]) {
+          ctxControl.fillText(chordModes[note].name.substring(0, 3), x + 2, blackKeyHeightControl - 15);
+        } else if (chordExtensions[note]) {
+          ctxControl.fillText(chordExtensions[note].name, x + 5, blackKeyHeightControl - 15);
+        } else if (chordInversions[note]) {
+          ctxControl.fillText(chordInversions[note].name, x + 2, blackKeyHeightControl - 15);
+        }
+      }
+
+      // Draw Play Piano
+      ctxPlay.clearRect(0, 0, canvasPlay.width, canvasPlay.height);
+
+      // Draw white keys (14 keys for 2 octaves)
+      for (let i = 0; i < 14; i++) {
+        const x = i * whiteKeyWidthPlay;
         const octave = Math.floor(i / 7);
         const noteIndex = i % 7;
         const noteOffset = [0, 2, 4, 5, 7, 9, 11][noteIndex];
-        const note = startNote + octave * 12 + noteOffset;
-        
-        if (note <= endNote) {
-          let isActiveControl = false;
-          if (octave === 0) {
-            if (chordModes[note] && activeChordMode === chordModes[note]) isActiveControl = true;
-            if (chordExtensions[note] && activeExtensions.has(chordExtensions[note])) isActiveControl = true;
-            if (chordInversions[note] && activeInversions.has(chordInversions[note])) isActiveControl = true;
-          }
+        const note = startNotePlay + octave * 12 + noteOffset;
 
-          ctx.fillStyle = (pressedNotes.has(note) || isActiveControl) ? 'yellow' : (octave === 0 ? '#e2e8f0' : 'white');
-          ctx.fillRect(x, 0, whiteKeyWidth, whiteKeyHeight);
-          ctx.strokeRect(x, 0, whiteKeyWidth, whiteKeyHeight);
-
-          // Label control keys
-          if (octave === 0) {
-            ctx.fillStyle = 'black';
-            ctx.font = '10px monospace';
-            if (chordModes[note]) {
-              ctx.fillText(chordModes[note].name.substring(0, 3), x + 2, whiteKeyHeight - 10);
-            } else if (chordExtensions[note]) {
-              ctx.fillText(chordExtensions[note].name, x + 5, whiteKeyHeight - 10);
-            } else if (chordInversions[note]) {
-              ctx.fillText(chordInversions[note].name, x + 2, whiteKeyHeight - 10);
-            }
-          }
+        if (note <= endNotePlay) {
+          ctxPlay.fillStyle = pressedNotes.has(note) ? 'yellow' : 'white';
+          ctxPlay.fillRect(x, 0, whiteKeyWidthPlay, whiteKeyHeightPlay);
+          ctxPlay.strokeRect(x, 0, whiteKeyWidthPlay, whiteKeyHeightPlay);
         }
       }
 
-      // Draw black keys (15 keys, 5 per octave for 3 octaves)
-      for (let octave = 0; octave < 3; octave++) {
-        const startX = (octave * 7 * whiteKeyWidth);
-        const blackNotes = [1, 3, 6, 8, 10];
+      // Draw black keys (10 keys, 5 per octave for 2 octaves)
+      for (let octave = 0; octave < 2; octave++) {
+        const startX = (octave * 7 * whiteKeyWidthPlay);
+        const blackNotesPlay = [1, 3, 6, 8, 10];
         for (let i = 0; i < 5; i++) {
-          const note = startNote + octave * 12 + blackNotes[i];
-          if (note <= endNote) {
-            const x = startX + blackOffsets[i] - blackKeyWidth / 2;
-
-            let isActiveControl = false;
-            if (octave === 0) {
-              if (chordModes[note] && activeChordMode === chordModes[note]) isActiveControl = true;
-              if (chordExtensions[note] && activeExtensions.has(chordExtensions[note])) isActiveControl = true;
-              if (chordInversions[note] && activeInversions.has(chordInversions[note])) isActiveControl = true;
-            }
-
-            ctx.fillStyle = (pressedNotes.has(note) || isActiveControl) ? 'yellow' : 'black';
-            ctx.fillRect(x, 0, blackKeyWidth, blackKeyHeight);
-
-            // Label control keys
-            if (octave === 0) {
-              ctx.fillStyle = 'white';
-              ctx.font = '10px monospace';
-              if (chordModes[note]) {
-                ctx.fillText(chordModes[note].name.substring(0, 3), x + 1, blackKeyHeight - 10);
-              } else if (chordExtensions[note]) {
-                ctx.fillText(chordExtensions[note].name, x + 2, blackKeyHeight - 10);
-              } else if (chordInversions[note]) {
-                ctx.fillText(chordInversions[note].name, x + 1, blackKeyHeight - 10);
-              }
-            }
+          const note = startNotePlay + octave * 12 + blackNotesPlay[i];
+          if (note <= endNotePlay) {
+            const x = startX + blackOffsetsPlay[i] - blackKeyWidthPlay / 2;
+            ctxPlay.fillStyle = pressedNotes.has(note) ? 'yellow' : 'black';
+            ctxPlay.fillRect(x, 0, blackKeyWidthPlay, blackKeyHeightPlay);
           }
         }
       }
-      
-      // Draw separator for the first octave
-      ctx.beginPath();
-      ctx.moveTo(7 * whiteKeyWidth, 0);
-      ctx.lineTo(7 * whiteKeyWidth, whiteKeyHeight);
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = '#38bdf8';
-      ctx.stroke();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = 'black';
     }
 
     // MIDI setup
@@ -818,117 +857,144 @@
     }
 
     // Mouse interaction for piano
-    canvas.addEventListener('mousedown', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const x = (e.clientX - rect.left) * scaleX;
-      const y = (e.clientY - rect.top) * scaleY;
-      const note = getNoteFromPos(x, y);
-      if (note !== null) {
-        noteOn(note);
-        canvas.dataset.activeNote = note;
-      }
-    });
+    function setupMouseEvents(canvas, isControl) {
+      canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        const note = getNoteFromPos(x, y, isControl);
+        if (note !== null) {
+          noteOn(note);
+          canvas.dataset.activeNote = note;
+        }
+      });
 
-    canvas.addEventListener('mouseup', (e) => {
-      const note = parseInt(canvas.dataset.activeNote);
-      if (!isNaN(note)) {
-        noteOff(note);
-        delete canvas.dataset.activeNote;
-      }
-    });
+      canvas.addEventListener('mouseup', (e) => {
+        const note = parseInt(canvas.dataset.activeNote);
+        if (!isNaN(note)) {
+          noteOff(note);
+          delete canvas.dataset.activeNote;
+        }
+      });
 
-    canvas.addEventListener('mouseleave', (e) => {
-      const note = parseInt(canvas.dataset.activeNote);
-      if (!isNaN(note)) {
-        noteOff(note);
-        delete canvas.dataset.activeNote;
-      }
-    });
+      canvas.addEventListener('mouseleave', (e) => {
+        const note = parseInt(canvas.dataset.activeNote);
+        if (!isNaN(note)) {
+          noteOff(note);
+          delete canvas.dataset.activeNote;
+        }
+      });
+    }
+
+    setupMouseEvents(canvasControl, true);
+    setupMouseEvents(canvasPlay, false);
 
     // Touch interaction for piano
     const activeTouches = new Map();
 
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
+    function setupTouchEvents(canvas, isControl) {
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
 
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const touch = e.changedTouches[i];
-        const x = (touch.clientX - rect.left) * scaleX;
-        const y = (touch.clientY - rect.top) * scaleY;
-        const note = getNoteFromPos(x, y);
-        if (note !== null) {
-          noteOn(note);
-          activeTouches.set(touch.identifier, note);
-        }
-      }
-    }, { passive: false });
-
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const touch = e.changedTouches[i];
-        const x = (touch.clientX - rect.left) * scaleX;
-        const y = (touch.clientY - rect.top) * scaleY;
-        const currentNote = getNoteFromPos(x, y);
-        const prevNote = activeTouches.get(touch.identifier);
-
-        if (currentNote !== prevNote) {
-          if (prevNote !== undefined && prevNote !== null) {
-            noteOff(prevNote);
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const touch = e.changedTouches[i];
+          const x = (touch.clientX - rect.left) * scaleX;
+          const y = (touch.clientY - rect.top) * scaleY;
+          const note = getNoteFromPos(x, y, isControl);
+          if (note !== null) {
+            noteOn(note);
+            activeTouches.set(touch.identifier, note);
           }
-          if (currentNote !== null) {
-            noteOn(currentNote);
-            activeTouches.set(touch.identifier, currentNote);
-          } else {
+        }
+      }, { passive: false });
+
+      canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const touch = e.changedTouches[i];
+          const x = (touch.clientX - rect.left) * scaleX;
+          const y = (touch.clientY - rect.top) * scaleY;
+          const currentNote = getNoteFromPos(x, y, isControl);
+          const prevNote = activeTouches.get(touch.identifier);
+
+          if (currentNote !== prevNote) {
+            if (prevNote !== undefined && prevNote !== null) {
+              noteOff(prevNote);
+            }
+            if (currentNote !== null) {
+              noteOn(currentNote);
+              activeTouches.set(touch.identifier, currentNote);
+            } else {
+              activeTouches.delete(touch.identifier);
+            }
+          }
+        }
+      }, { passive: false });
+
+      const handleTouchEnd = (e) => {
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const touch = e.changedTouches[i];
+          const note = activeTouches.get(touch.identifier);
+          if (note !== undefined && note !== null) {
+            noteOff(note);
             activeTouches.delete(touch.identifier);
           }
         }
-      }
-    }, { passive: false });
+      };
 
-    const handleTouchEnd = (e) => {
-      e.preventDefault();
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const touch = e.changedTouches[i];
-        const note = activeTouches.get(touch.identifier);
-        if (note !== undefined && note !== null) {
-          noteOff(note);
-          activeTouches.delete(touch.identifier);
-        }
-      }
-    };
+      canvas.addEventListener('touchend', handleTouchEnd);
+      canvas.addEventListener('touchcancel', handleTouchEnd);
+    }
 
-    canvas.addEventListener('touchend', handleTouchEnd);
-    canvas.addEventListener('touchcancel', handleTouchEnd);
+    setupTouchEvents(canvasControl, true);
+    setupTouchEvents(canvasPlay, false);
 
-    function getNoteFromPos(x, y) {
-      // Check black keys first
-      for (let octave = 0; octave < 3; octave++) {
-        const startX = (octave * 7 * whiteKeyWidth);
-        const blackNotes = [1, 3, 6, 8, 10];
+    function getNoteFromPos(x, y, isControl) {
+      if (isControl) {
+        // Check black keys first
+        const blackNotesControl = [1, 3, 6, 8, 10];
         for (let i = 0; i < 5; i++) {
-          const bx = startX + blackOffsets[i] - blackKeyWidth / 2;
-          if (x >= bx && x <= bx + blackKeyWidth && y <= blackKeyHeight) {
-            return startNote + octave * 12 + blackNotes[i];
+          const bx = blackOffsetsControl[i] - blackKeyWidthControl / 2;
+          if (x >= bx && x <= bx + blackKeyWidthControl && y <= blackKeyHeightControl) {
+            return startNoteControl + blackNotesControl[i];
           }
         }
-      }
-      // Check white keys
-      const whiteIndex = Math.floor(x / whiteKeyWidth);
-      if (whiteIndex >= 0 && whiteIndex < 21) {
-        const octave = Math.floor(whiteIndex / 7);
-        const noteIndex = whiteIndex % 7;
-        const noteOffset = [0, 2, 4, 5, 7, 9, 11][noteIndex];
-        return startNote + octave * 12 + noteOffset;
+        // Check white keys
+        const whiteIndex = Math.floor(x / whiteKeyWidthControl);
+        if (whiteIndex >= 0 && whiteIndex < 7) {
+          const noteOffset = [0, 2, 4, 5, 7, 9, 11][whiteIndex];
+          return startNoteControl + noteOffset;
+        }
+      } else {
+        // Check black keys first
+        for (let octave = 0; octave < 2; octave++) {
+          const startX = (octave * 7 * whiteKeyWidthPlay);
+          const blackNotesPlay = [1, 3, 6, 8, 10];
+          for (let i = 0; i < 5; i++) {
+            const bx = startX + blackOffsetsPlay[i] - blackKeyWidthPlay / 2;
+            if (x >= bx && x <= bx + blackKeyWidthPlay && y <= blackKeyHeightPlay) {
+              return startNotePlay + octave * 12 + blackNotesPlay[i];
+            }
+          }
+        }
+        // Check white keys
+        const whiteIndex = Math.floor(x / whiteKeyWidthPlay);
+        if (whiteIndex >= 0 && whiteIndex < 14) {
+          const octave = Math.floor(whiteIndex / 7);
+          const noteIndex = whiteIndex % 7;
+          const noteOffset = [0, 2, 4, 5, 7, 9, 11][noteIndex];
+          return startNotePlay + octave * 12 + noteOffset;
+        }
       }
       return null;
     }
