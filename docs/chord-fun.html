@@ -688,59 +688,49 @@
     const blackOffsetsPlay = [45, 90, 180, 225, 270]; // Centers for C#, D#, F#, G#, A#
 
     function drawPiano() {
-      // Draw Control Piano
+      // Draw Control Piano (Uniform Keys)
       ctxControl.clearRect(0, 0, canvasControl.width, canvasControl.height);
 
-      // Draw white keys (7 keys for 1 octave)
-      for (let i = 0; i < 7; i++) {
-        const x = i * whiteKeyWidthControl;
-        const noteOffset = [0, 2, 4, 5, 7, 9, 11][i];
-        const note = startNoteControl + noteOffset;
+      const numControlKeys = 12;
+      const controlKeyWidth = canvasControl.width / numControlKeys;
+      const controlKeyHeight = canvasControl.height;
+
+      const isBlackKey = [false, true, false, true, false, false, true, false, true, false, true, false];
+
+      for (let i = 0; i < numControlKeys; i++) {
+        const x = i * controlKeyWidth;
+        const note = startNoteControl + i;
 
         let isActiveControl = false;
         if (chordModes[note] && activeChordMode === chordModes[note]) isActiveControl = true;
         if (chordExtensions[note] && activeExtensions.has(chordExtensions[note])) isActiveControl = true;
         if (chordInversions[note] && activeInversions.has(chordInversions[note])) isActiveControl = true;
 
-        ctxControl.fillStyle = (pressedNotes.has(note) || isActiveControl) ? 'yellow' : '#e2e8f0';
-        ctxControl.fillRect(x, 0, whiteKeyWidthControl, whiteKeyHeightControl);
-        ctxControl.strokeRect(x, 0, whiteKeyWidthControl, whiteKeyHeightControl);
+        const isPressedOrActive = pressedNotes.has(note) || isActiveControl;
 
-        // Label control keys
-        ctxControl.fillStyle = 'black';
-        ctxControl.font = '14px monospace';
-        if (chordModes[note]) {
-          ctxControl.fillText(chordModes[note].name.substring(0, 3), x + 5, whiteKeyHeightControl - 15);
-        } else if (chordExtensions[note]) {
-          ctxControl.fillText(chordExtensions[note].name, x + 10, whiteKeyHeightControl - 15);
-        } else if (chordInversions[note]) {
-          ctxControl.fillText(chordInversions[note].name, x + 5, whiteKeyHeightControl - 15);
+        if (isBlackKey[i]) {
+           ctxControl.fillStyle = isPressedOrActive ? 'yellow' : 'black';
+        } else {
+           ctxControl.fillStyle = isPressedOrActive ? 'yellow' : '#e2e8f0';
         }
-      }
 
-      // Draw black keys (5 keys for 1 octave)
-      const blackNotesControl = [1, 3, 6, 8, 10];
-      for (let i = 0; i < 5; i++) {
-        const note = startNoteControl + blackNotesControl[i];
-        const x = blackOffsetsControl[i] - blackKeyWidthControl / 2;
-
-        let isActiveControl = false;
-        if (chordModes[note] && activeChordMode === chordModes[note]) isActiveControl = true;
-        if (chordExtensions[note] && activeExtensions.has(chordExtensions[note])) isActiveControl = true;
-        if (chordInversions[note] && activeInversions.has(chordInversions[note])) isActiveControl = true;
-
-        ctxControl.fillStyle = (pressedNotes.has(note) || isActiveControl) ? 'yellow' : 'black';
-        ctxControl.fillRect(x, 0, blackKeyWidthControl, blackKeyHeightControl);
+        ctxControl.fillRect(x, 0, controlKeyWidth, controlKeyHeight);
+        ctxControl.strokeRect(x, 0, controlKeyWidth, controlKeyHeight);
 
         // Label control keys
-        ctxControl.fillStyle = 'white';
+        ctxControl.fillStyle = isBlackKey[i] && !isPressedOrActive ? 'white' : 'black';
         ctxControl.font = '12px monospace';
+
+        // Center text roughly
+        const textX = x + (controlKeyWidth / 2) - 10;
+        const textY = controlKeyHeight - 15;
+
         if (chordModes[note]) {
-          ctxControl.fillText(chordModes[note].name.substring(0, 3), x + 2, blackKeyHeightControl - 15);
+          ctxControl.fillText(chordModes[note].name.substring(0, 3), textX, textY);
         } else if (chordExtensions[note]) {
-          ctxControl.fillText(chordExtensions[note].name, x + 5, blackKeyHeightControl - 15);
+          ctxControl.fillText(chordExtensions[note].name, textX + 5, textY);
         } else if (chordInversions[note]) {
-          ctxControl.fillText(chordInversions[note].name, x + 2, blackKeyHeightControl - 15);
+          ctxControl.fillText(chordInversions[note].name, textX, textY);
         }
       }
 
@@ -967,19 +957,11 @@
 
       if (isControl) {
         if (x > canvasControl.width || y > canvasControl.height) return null;
-        // Check black keys first
-        const blackNotesControl = [1, 3, 6, 8, 10];
-        for (let i = 0; i < 5; i++) {
-          const bx = blackOffsetsControl[i] - blackKeyWidthControl / 2;
-          if (x >= bx && x <= bx + blackKeyWidthControl && y <= blackKeyHeightControl) {
-            return startNoteControl + blackNotesControl[i];
-          }
-        }
-        // Check white keys
-        const whiteIndex = Math.floor(x / whiteKeyWidthControl);
-        if (whiteIndex >= 0 && whiteIndex < 7) {
-          const noteOffset = [0, 2, 4, 5, 7, 9, 11][whiteIndex];
-          return startNoteControl + noteOffset;
+        const numControlKeys = 12;
+        const controlKeyWidth = canvasControl.width / numControlKeys;
+        const keyIndex = Math.floor(x / controlKeyWidth);
+        if (keyIndex >= 0 && keyIndex < numControlKeys) {
+          return startNoteControl + keyIndex;
         }
       } else {
         if (x > canvasPlay.width || y > canvasPlay.height) return null;
