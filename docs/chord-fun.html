@@ -49,18 +49,50 @@
     }
     #piano-control {
       width: 100%;
-      max-width: 800px;
+      max-width: 100%;
       height: 20vh;
-      min-height: 100px;
+      min-height: 120px;
     }
     #piano-play {
       width: 100%;
-      max-width: 1000px;
+      max-width: 100%;
       height: 20vh;
-      min-height: 100px;
+      min-height: 120px;
     }
     .active-modes {
       color: #38bdf8;
+      font-weight: bold;
+    }
+    .stepper-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .stepper button {
+      width: 36px;
+      height: 36px;
+      background: #1e293b;
+      color: #e5e7eb;
+      border: 1px solid #38bdf8;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stepper button:active {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+    .stepper span {
+      min-width: 24px;
+      text-align: center;
       font-weight: bold;
     }
     .synth-controls {
@@ -210,10 +242,15 @@
       </div>
     </div>
     <div class="controls">
-      <label>
-        Synth Octave Shift:
-        <input type="number" id="octave-shift" value="0" min="-3" max="3" />
-      </label>
+      <div class="stepper-group">
+        <label>Synth Octave Shift:</label>
+        <div class="stepper">
+          <button type="button" id="octave-down">-</button>
+          <span id="octave-display">0</span>
+          <button type="button" id="octave-up">+</button>
+        </div>
+        <input type="hidden" id="octave-shift" value="0" />
+      </div>
       <label>
         Hold Mode:
         <input type="checkbox" id="hold-mode" />
@@ -343,7 +380,11 @@
 
       document.getElementById('osc-wave').value = p.wave;
       document.getElementById('unison-voices').value = p.unisonVoices;
-      document.getElementById('octave-shift').value = p.octaveShift !== undefined ? p.octaveShift : 0;
+
+      const octShift = p.octaveShift !== undefined ? p.octaveShift : 0;
+      document.getElementById('octave-shift').value = octShift;
+      const octDisplay = document.getElementById('octave-display');
+      if (octDisplay) octDisplay.innerText = octShift;
 
       const setRange = (id, val) => {
         const el = document.getElementById(id);
@@ -369,6 +410,26 @@
 
     document.getElementById('preset-selector').addEventListener('change', (e) => {
       applyPreset(e.target.value);
+    });
+
+    document.getElementById('octave-down').addEventListener('click', () => {
+      const input = document.getElementById('octave-shift');
+      let val = parseInt(input.value) || 0;
+      if (val > -3) {
+        val--;
+        input.value = val;
+        document.getElementById('octave-display').innerText = val;
+      }
+    });
+
+    document.getElementById('octave-up').addEventListener('click', () => {
+      const input = document.getElementById('octave-shift');
+      let val = parseInt(input.value) || 0;
+      if (val < 3) {
+        val++;
+        input.value = val;
+        document.getElementById('octave-display').innerText = val;
+      }
     });
 
     // Apply default preset on load
@@ -687,9 +748,31 @@
     const whiteKeyHeightPlay = 150;
     const blackOffsetsPlay = [45, 90, 180, 225, 270]; // Centers for C#, D#, F#, G#, A#
 
+    function resizeCanvas(canvas, logicalWidth, logicalHeight) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+
+      // Set actual size in memory (scaled to account for extra pixel density)
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      // Normalize coordinate system to use css pixels
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      // Scale to fit the logical dimensions into the actual dimensions
+      const scaleX = rect.width / logicalWidth;
+      const scaleY = rect.height / logicalHeight;
+      ctx.scale(scaleX, scaleY);
+    }
+
     function drawPiano() {
+      // Resize canvases before drawing to ensure crispness
+      resizeCanvas(canvasControl, 420, 150);
+      resizeCanvas(canvasPlay, 630, 150);
+
       // Draw Control Piano
-      ctxControl.clearRect(0, 0, canvasControl.width, canvasControl.height);
+      ctxControl.clearRect(0, 0, 420, 150);
 
       // Draw white keys (7 keys for 1 octave)
       for (let i = 0; i < 7; i++) {
@@ -745,7 +828,7 @@
       }
 
       // Draw Play Piano
-      ctxPlay.clearRect(0, 0, canvasPlay.width, canvasPlay.height);
+      ctxPlay.clearRect(0, 0, 630, 150);
 
       // Draw white keys (14 keys for 2 octaves)
       for (let i = 0; i < 14; i++) {
@@ -815,7 +898,11 @@
         const isHold = document.getElementById('hold-mode').checked;
         if (isHold) {
           if (chordModes[note]) {
-            latchedChordMode = chordModes[note];
+            if (latchedChordMode === chordModes[note]) {
+              latchedChordMode = null;
+            } else {
+              latchedChordMode = chordModes[note];
+            }
           } else if (chordExtensions[note]) {
             if (latchedExtensions.has(chordExtensions[note])) {
               latchedExtensions.delete(chordExtensions[note]);
@@ -858,10 +945,13 @@
 
     // Mouse interaction for piano
     function setupMouseEvents(canvas, isControl) {
+      const logicalWidth = isControl ? 420 : 630;
+      const logicalHeight = 150;
+
       canvas.addEventListener('mousedown', (e) => {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const scaleX = logicalWidth / rect.width;
+        const scaleY = logicalHeight / rect.height;
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
         const note = getNoteFromPos(x, y, isControl);
@@ -894,12 +984,14 @@
     // Touch interaction for piano
     function setupTouchEvents(canvas, isControl) {
       const activeTouches = new Map();
+      const logicalWidth = isControl ? 420 : 630;
+      const logicalHeight = 150;
 
       canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const scaleX = logicalWidth / rect.width;
+        const scaleY = logicalHeight / rect.height;
 
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
@@ -917,8 +1009,8 @@
       canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
+        const scaleX = logicalWidth / rect.width;
+        const scaleY = logicalHeight / rect.height;
 
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
@@ -995,7 +1087,7 @@
       if (x < 0 || y < 0) return null;
 
       if (isControl) {
-        if (x > canvasControl.width || y > canvasControl.height) return null;
+        if (x > 420 || y > 150) return null;
         // Check black keys first
         const blackNotesControl = [1, 3, 6, 8, 10];
         for (let i = 0; i < 5; i++) {
@@ -1011,7 +1103,7 @@
           return startNoteControl + noteOffset;
         }
       } else {
-        if (x > canvasPlay.width || y > canvasPlay.height) return null;
+        if (x > 630 || y > 150) return null;
         // Check black keys first
         for (let octave = 0; octave < 2; octave++) {
           const startX = (octave * 7 * whiteKeyWidthPlay);
@@ -1035,7 +1127,12 @@
       return null;
     }
 
-    drawPiano();
+    window.addEventListener('resize', () => {
+      drawPiano();
+    });
+
+    // Initial draw needs to wait for layout to complete so bounding client rect is accurate
+    setTimeout(drawPiano, 0);
   </script>
 </body>
 </html>
