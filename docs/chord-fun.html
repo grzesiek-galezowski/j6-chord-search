@@ -311,6 +311,94 @@
       font-family: monospace;
       font-size: 13px;
     }
+    /* === Help Panel (desktop only) === */
+    #help-panel {
+      position: fixed;
+      top: 10vh;
+      bottom: 10vh;
+      right: 0;
+      display: flex;
+      flex-direction: row;
+      transform: translateX(calc(100% - 38px));
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 500;
+    }
+    #help-panel.open {
+      transform: translateX(0);
+    }
+    @media (hover: none), (pointer: coarse) {
+      #help-panel {
+        display: none;
+      }
+    }
+    #help-panel-content {
+      width: 290px;
+      overflow-y: auto;
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      padding: 14px;
+      color: #e5e7eb;
+      font-size: 12px;
+    }
+    #help-panel-content h3 {
+      margin: 0 0 6px 0;
+      font-size: 13px;
+      color: #38bdf8;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 4px;
+    }
+    #help-panel-content h4 {
+      margin: 10px 0 3px 0;
+      font-size: 10px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    #help-panel-tab {
+      flex-shrink: 0;
+      width: 38px;
+      align-self: stretch;
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      cursor: pointer;
+      font-family: monospace;
+      font-weight: bold;
+      font-size: 11px;
+      writing-mode: vertical-rl;
+      white-space: nowrap;
+      user-select: none;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #help-panel-tab:hover {
+      background: #7dd3fc;
+    }
+    .help-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4px;
+    }
+    .help-table td {
+      padding: 2px 4px 2px 0;
+      vertical-align: top;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .help-table td:nth-child(odd) {
+      color: #38bdf8;
+      white-space: nowrap;
+      padding-right: 6px;
+      min-width: 28px;
+    }
+    .help-table td:nth-child(even) {
+      color: #cbd5e1;
+      padding-right: 10px;
+    }
   </style>
 </head>
 <body>
@@ -441,6 +529,79 @@
         </label>
       </div>
       <div id="sequencer-steps" class="sequencer-steps"></div>
+    </div>
+  </div>
+  <div id="help-panel">
+    <button id="help-panel-tab" title="Toggle keyboard shortcuts &amp; controls">&#9000; Help</button>
+    <div id="help-panel-content">
+      <h3>Keyboard Shortcuts</h3>
+      <h4>Chord Modifiers</h4>
+      <table class="help-table">
+        <tr><td>z</td><td>Major</td></tr>
+        <tr><td>s</td><td>Diminished</td></tr>
+        <tr><td>x</td><td>Minor</td></tr>
+        <tr><td>d</td><td>Suspended</td></tr>
+        <tr><td>c</td><td>Inversion 1</td></tr>
+        <tr><td>v</td><td>Inversion 2</td></tr>
+        <tr><td>g</td><td>Ext: 6th</td></tr>
+        <tr><td>b</td><td>Ext: m7</td></tr>
+        <tr><td>h</td><td>Ext: M7</td></tr>
+        <tr><td>n</td><td>Ext: 9th</td></tr>
+      </table>
+      <h4>Play — Octave 1 (C3–B3)</h4>
+      <table class="help-table">
+        <tr><td>q</td><td>C3</td><td>2</td><td>C#3</td></tr>
+        <tr><td>w</td><td>D3</td><td>3</td><td>D#3</td></tr>
+        <tr><td>e</td><td>E3</td><td></td><td></td></tr>
+        <tr><td>r</td><td>F3</td><td>5</td><td>F#3</td></tr>
+        <tr><td>t</td><td>G3</td><td>6</td><td>G#3</td></tr>
+        <tr><td>y</td><td>A3</td><td>7</td><td>A#3</td></tr>
+        <tr><td>u</td><td>B3</td><td></td><td></td></tr>
+      </table>
+      <h4>Play — Octave 2 (C4–G4)</h4>
+      <table class="help-table">
+        <tr><td>i</td><td>C4</td><td>9</td><td>C#4</td></tr>
+        <tr><td>o</td><td>D4</td><td>0</td><td>D#4</td></tr>
+        <tr><td>p</td><td>E4</td><td></td><td></td></tr>
+        <tr><td>[</td><td>F4</td><td>=</td><td>F#4</td></tr>
+        <tr><td>]</td><td>G4</td><td></td><td></td></tr>
+      </table>
+      <h4>Global</h4>
+      <table class="help-table">
+        <tr><td>Space</td><td>Play / Stop sequencer</td></tr>
+        <tr><td>&#8592;</td><td>Select prev step</td></tr>
+        <tr><td>&#8594;</td><td>Select next step</td></tr>
+      </table>
+      <h3>Controls</h3>
+      <h4>Chord Engine</h4>
+      <table class="help-table">
+        <tr><td>Preset</td><td>Load synth preset</td></tr>
+        <tr><td>Oct Shift</td><td>Transpose &#177;3 octaves</td></tr>
+        <tr><td>Hold Mode</td><td>Latch modifiers; press again to toggle each</td></tr>
+        <tr><td>Root Dbl</td><td>Add root one octave below</td></tr>
+        <tr><td>Strumming</td><td>Guitar voicing + 30 ms note stagger</td></tr>
+      </table>
+      <h4>Sequencer</h4>
+      <table class="help-table">
+        <tr><td>BPM &#177;</td><td>Tempo 20–300 (step 5)</td></tr>
+        <tr><td>&#9654; Play</td><td>Start from step 1</td></tr>
+        <tr><td>&#9632; Stop</td><td>Stop + release chord</td></tr>
+        <tr><td>&#8635; Reset</td><td>Stop + clear all steps</td></tr>
+        <tr><td>&#9679; Rec</td><td>Toggle record (red = on)</td></tr>
+        <tr><td>Select</td><td>Record to fixed selected step</td></tr>
+        <tr><td>SH-101</td><td>Record + auto-advance step</td></tr>
+        <tr><td>Vol</td><td>Sequencer output level</td></tr>
+        <tr><td>Metro</td><td>Metronome (playback only)</td></tr>
+        <tr><td>Res</td><td>Metro density: 1 bar – 1/16</td></tr>
+      </table>
+      <h4>Synth Engine</h4>
+      <table class="help-table">
+        <tr><td>Waveform</td><td>Oscillator shape (14 types)</td></tr>
+        <tr><td>Unison</td><td>Stacked voices + detune spread</td></tr>
+        <tr><td>Amp Env</td><td>ADSR volume envelope</td></tr>
+        <tr><td>Filter</td><td>Dual LP ladder; cutoff, Q, drive</td></tr>
+        <tr><td>Filt Env</td><td>Cutoff ADSR sweep (&#177;10 kHz)</td></tr>
+      </table>
     </div>
   </div>
   <script>
@@ -1604,6 +1765,10 @@
     });
 
     drawSequencer();
+
+    document.getElementById('help-panel-tab').addEventListener('click', () => {
+      document.getElementById('help-panel').classList.toggle('open');
+    });
 
     // Initial draw needs to wait for layout to complete so bounding client rect is accurate
     setTimeout(drawPiano, 0);
