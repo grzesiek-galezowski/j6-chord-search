@@ -34,6 +34,7 @@ Chord Fun is a browser-based polyphonic synthesiser and chord sequencer. It acce
    - [Sustain Logic](#sustain-logic)
    - [Playback](#playback)
    - [BPM Control](#bpm-control)
+   - [Metronome](#metronome)
    - [Controls Reference](#controls-reference)
 4. [Mobile Performance](#mobile-performance)
    - [Detection](#detection)
@@ -381,11 +382,37 @@ barMs = (4 × 60 × 1000) / BPM
 
 The BPM stepper adjusts in steps of 5, clamped to the range 20–300. Changing the BPM while playing calls `seqRestartInterval`, which clears the old interval and creates a new one at the updated rate. The current bar is cut short by the change.
 
+### Metronome
+
+An optional audible metronome can be enabled via the **Metro** checkbox in the sequencer header (default: off). The metronome is locked to sequencer playback — it has no independent play mode and produces no sound unless the sequencer is running.
+
+**Resolution** is set via the adjacent dropdown (default: 1/4). The selected value determines how many evenly-spaced clicks are scheduled per bar:
+
+| Resolution | Clicks per bar | Description |
+|---|---|---|
+| 1 bar | 1 | One click on the downbeat only |
+| 1/2 | 2 | Clicks on beats 1 and 3 (half notes) |
+| 1/4 | 4 | One click per quarter note (standard beat) |
+| 1/8 | 8 | Clicks on every eighth note |
+| 1/16 | 16 | Clicks on every sixteenth note |
+
+**Accent levels** — three pitch/amplitude tiers distinguish pulse hierarchy:
+
+| Level | Frequency | Amplitude | Condition |
+|---|---|---|---|
+| Bar start | 1200 Hz | 0.4 | First click of every bar (`i = 0`) |
+| Quarter-note beat | 900 Hz | 0.25 | `(i × 4) mod divisions = 0`, `i > 0` |
+| Subdivision | 700 Hz | 0.15 | All other clicks |
+
+Each click is a sine-wave burst that decays to near-silence in ~60 ms. Clicks route directly to `AudioDestination` (bypassing `seqOutputGain`) so the sequencer volume slider does not affect metronome level. Timing uses `audioCtx.currentTime + 5 ms` as the scheduling base to compensate for JavaScript timer jitter.
+
 ### Controls Reference
 
 | Control | Behaviour |
 |---|---|
 | **Vol slider** | Sets the `seqOutputGain` level (0–100%, default 70%); updates in real time via `setTargetAtTime` with a 15 ms smoothing constant — adjusting while a chord sustains takes effect immediately without retriggering the envelope |
+| **Metro checkbox** | Enables/disables the metronome; only produces clicks while the sequencer is playing; default off |
+| **Metro resolution** | Click density per bar: 1 bar / 1/2 / 1/4 (default) / 1/8 / 1/16; can be changed while playing |
 | **− / + (BPM)** | Decrease / increase BPM by 5; restarts interval if playing |
 | **▶ Play** | Starts playback from step 1; no-op if already playing; highlights blue when active; disables record mode |
 | **■ Stop** | Stops playback and releases the current chord through its Release envelope; disables record mode |

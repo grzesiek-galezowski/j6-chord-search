@@ -302,6 +302,15 @@
     #seq-volume {
       width: 80px;
     }
+    #seq-metro-res {
+      background: #1e293b;
+      color: #e5e7eb;
+      border: 1px solid #38bdf8;
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-family: monospace;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -420,6 +429,16 @@
         <label class="seq-vol-label">
           Vol: <input type="range" id="seq-volume" min="0" max="100" value="70" /><span class="val" id="seq-volume-val">70</span>
         </label>
+        <label class="seq-vol-label">
+          Metro: <input type="checkbox" id="seq-metronome" />
+          <select id="seq-metro-res">
+            <option value="1">1 bar</option>
+            <option value="2">1/2</option>
+            <option value="4" selected>1/4</option>
+            <option value="8">1/8</option>
+            <option value="16">1/16</option>
+          </select>
+        </label>
       </div>
       <div id="sequencer-steps" class="sequencer-steps"></div>
     </div>
@@ -495,7 +514,7 @@
     const presets = {
       'lush-pad': {
         wave: 'soft-saw', unisonVoices: 4, unisonDetune: 25,
-        ampA: 80, ampD: 1500, ampS: 70, ampR: 2000,
+        ampA: 10, ampD: 1500, ampS: 70, ampR: 2000,
         filtCutoff: 800, filtRes: 2, filtDrive: 5,
         filtEnvAmt: 1500, filtA: 1000, filtD: 2000, filtS: 50, filtR: 2000,
         octaveShift: -1
@@ -1379,6 +1398,40 @@
       document.getElementById('seq-record').classList.toggle('active', val);
     }
 
+    function playMetronomeClick(time, accent) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = accent === 2 ? 1200 : accent === 1 ? 900 : 700;
+      const amp = accent === 2 ? 0.4 : accent === 1 ? 0.25 : 0.15;
+      gain.gain.setValueAtTime(amp, time);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.06);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(time);
+      osc.stop(time + 0.08);
+    }
+
+    function seqScheduleMetronome() {
+      if (!audioCtx || !document.getElementById('seq-metronome').checked) return;
+      const divisions = parseInt(document.getElementById('seq-metro-res').value) || 4;
+      const barSec = seqGetBarMs() / 1000;
+      const divSec = barSec / divisions;
+      const now = audioCtx.currentTime + 0.005;
+      for (let i = 0; i < divisions; i++) {
+        let accent;
+        if (i === 0) {
+          accent = 2;
+        } else if ((i * 4) % divisions === 0) {
+          accent = 1;
+        } else {
+          accent = 0;
+        }
+        playMetronomeClick(now + i * divSec, accent);
+      }
+    }
+
     function seqPlayStep(stepIndex) {
       const step = sequencerSteps[stepIndex];
       seqCurrentStep = stepIndex;
@@ -1397,6 +1450,7 @@
           seqCurrentFreqs = null;
         }
       }
+      seqScheduleMetronome();
       seqRefreshAllClasses();
     }
 

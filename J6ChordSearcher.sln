@@ -10,6 +10,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionItems", "SolutionItems", "{267F72D3-DCCA-4514-A62D-E92874499A38}"
 	ProjectSection(SolutionItems) = preProject
 		docs\chord-browser.html = docs\chord-browser.html
+		docs\chord-fun.html = docs\chord-fun.html
+		docs\chord-fun.md = docs\chord-fun.md
 		docs\j6-chords.csv = docs\j6-chords.csv
 		docs\midi-display.html = docs\midi-display.html
 	EndProjectSection
