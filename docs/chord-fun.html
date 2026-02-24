@@ -194,14 +194,15 @@
       margin-bottom: 12px;
     }
     .sequencer-header > button {
-      padding: 6px 14px;
+      padding: 10px 18px;
       background: #0f172a;
       color: #e5e7eb;
       border: 1px solid #38bdf8;
       border-radius: 4px;
       cursor: pointer;
       font-family: monospace;
-      font-size: 14px;
+      font-size: 18px;
+      line-height: 1;
     }
     .sequencer-header > button:active {
       background: #38bdf8;
@@ -506,10 +507,9 @@
           <button type="button" id="seq-bpm-up">+</button>
         </div>
         <input type="hidden" id="seq-bpm" value="120" />
-        <button type="button" id="seq-play">&#9654; Play</button>
-        <button type="button" id="seq-stop">&#9632; Stop</button>
-        <button type="button" id="seq-reset">&#8635; Reset</button>
-        <button type="button" id="seq-record">&#9679; Record</button>
+        <button type="button" id="seq-play" title="Play / Stop">&#9654;</button>
+        <button type="button" id="seq-reset" title="Reset">&#8635;</button>
+        <button type="button" id="seq-record" title="Record">&#9679;</button>
         <div class="seq-mode-group">
           <label><input type="radio" name="seq-mode" value="select" /> Select</label>
           <label><input type="radio" name="seq-mode" value="sh101" checked /> SH-101</label>
@@ -532,7 +532,7 @@
     </div>
   </div>
   <div id="help-panel">
-    <button id="help-panel-tab" title="Toggle keyboard shortcuts &amp; controls">&#9000; Help</button>
+    <button id="help-panel-tab" title="Toggle keyboard shortcuts &amp; controls">&#9000;</button>
     <div id="help-panel-content">
       <h3>Keyboard Shortcuts</h3>
       <h4>Chord Modifiers</h4>
@@ -550,28 +550,21 @@
       </table>
       <h4>Play — Octave 1 (C3–B3)</h4>
       <table class="help-table">
-        <tr><td>q</td><td>C3</td><td>2</td><td>C#3</td></tr>
-        <tr><td>w</td><td>D3</td><td>3</td><td>D#3</td></tr>
-        <tr><td>e</td><td>E3</td><td></td><td></td></tr>
-        <tr><td>r</td><td>F3</td><td>5</td><td>F#3</td></tr>
-        <tr><td>t</td><td>G3</td><td>6</td><td>G#3</td></tr>
-        <tr><td>y</td><td>A3</td><td>7</td><td>A#3</td></tr>
-        <tr><td>u</td><td>B3</td><td></td><td></td></tr>
+        <tr><td>q-u</td><td>C3-B3</td></tr>
       </table>
       <h4>Play — Octave 2 (C4–G4)</h4>
       <table class="help-table">
-        <tr><td>i</td><td>C4</td><td>9</td><td>C#4</td></tr>
-        <tr><td>o</td><td>D4</td><td>0</td><td>D#4</td></tr>
-        <tr><td>p</td><td>E4</td><td></td><td></td></tr>
-        <tr><td>[</td><td>F4</td><td>=</td><td>F#4</td></tr>
-        <tr><td>]</td><td>G4</td><td></td><td></td></tr>
+        <tr><td>i-]</td><td>C4-G4</td></tr>
       </table>
-      <h4>Global</h4>
+      <h4>Sequencer</h4>
       <table class="help-table">
         <tr><td>Space</td><td>Play / Stop sequencer</td></tr>
         <tr><td>&#8592;</td><td>Select prev step</td></tr>
         <tr><td>&#8594;</td><td>Select next step</td></tr>
+        <tr><td>Ctrl+&#8592;</td><td>Octave down</td></tr>
+        <tr><td>Ctrl+&#8594;</td><td>Octave up</td></tr>
       </table>
+      <h3> </h3>
       <h3>Controls</h3>
       <h4>Chord Engine</h4>
       <table class="help-table">
@@ -584,9 +577,8 @@
       <h4>Sequencer</h4>
       <table class="help-table">
         <tr><td>BPM &#177;</td><td>Tempo 20–300 (step 5)</td></tr>
-        <tr><td>&#9654; Play</td><td>Start from step 1</td></tr>
-        <tr><td>&#9632; Stop</td><td>Stop + release chord</td></tr>
-        <tr><td>&#8635; Reset</td><td>Stop + clear all steps</td></tr>
+        <tr><td>&#9654;/&#9632;</td><td>Play / Stop (toggle)</td></tr>
+        <tr><td>&#8635;</td><td>Stop + clear all steps</td></tr>
         <tr><td>&#9679; Rec</td><td>Toggle record (red = on)</td></tr>
         <tr><td>Select</td><td>Record to fixed selected step</td></tr>
         <tr><td>SH-101</td><td>Record + auto-advance step</td></tr>
@@ -1421,6 +1413,16 @@
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.ctrlKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        document.getElementById('octave-down').click();
+        return;
+      }
+      if (e.ctrlKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        document.getElementById('octave-up').click();
+        return;
+      }
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         seqSelectedStep = (seqSelectedStep - 1 + SEQ_STEPS) % SEQ_STEPS;
@@ -1435,7 +1437,7 @@
       }
       if (e.key === ' ') {
         e.preventDefault();
-        seqPlaying ? seqStop() : seqStart();
+        seqToggle();
         return;
       }
       const key = e.key.toLowerCase();
@@ -1623,6 +1625,10 @@
       }, seqGetBarMs());
     }
 
+    function seqToggle() {
+      seqPlaying ? seqStop() : seqStart();
+    }
+
     function seqStart() {
       if (seqPlaying) return;
       initAudio();
@@ -1632,7 +1638,9 @@
       seqCurrentFreqs = null;
       seqPlayStep(0);
       seqRestartInterval();
-      document.getElementById('seq-play').classList.add('active');
+      const btn = document.getElementById('seq-play');
+      btn.classList.add('active');
+      btn.innerHTML = '\u25A0';
     }
 
     function seqStop() {
@@ -1646,7 +1654,9 @@
         seqCurrentFreqs = null;
       }
       seqCurrentStep = -1;
-      document.getElementById('seq-play').classList.remove('active');
+      const btn = document.getElementById('seq-play');
+      btn.classList.remove('active');
+      btn.innerHTML = '\u25B6';
       seqRefreshAllClasses();
     }
 
@@ -1757,8 +1767,7 @@
       }
     });
 
-    document.getElementById('seq-play').addEventListener('click', seqStart);
-    document.getElementById('seq-stop').addEventListener('click', seqStop);
+    document.getElementById('seq-play').addEventListener('click', seqToggle);
     document.getElementById('seq-reset').addEventListener('click', seqReset);
     document.getElementById('seq-record').addEventListener('click', () => {
       seqSetRecordMode(!seqRecordMode);
