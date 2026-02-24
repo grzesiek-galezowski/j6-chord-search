@@ -34,6 +34,11 @@ Chord Fun is a browser-based polyphonic synthesiser and chord sequencer. It acce
    - [Playback](#playback)
    - [BPM Control](#bpm-control)
    - [Controls Reference](#controls-reference)
+4. [Mobile Performance](#mobile-performance)
+   - [Detection](#detection)
+   - [Per-device Adjustments](#per-device-adjustments)
+   - [Distortion Curve Cache](#distortion-curve-cache)
+   - [Canvas Resize Guard](#canvas-resize-guard)
 
 ---
 
@@ -378,3 +383,47 @@ The BPM stepper adjusts in steps of 5, clamped to the range 20–300. Changing t
 | **SH-101 radio** | Recording mode: selected step advances after each note press |
 | **Step cell click** | Sets the selected step (blue border) |
 | **× button on step** | Clears that individual step without affecting others or stopping playback |
+
+---
+
+## Mobile Performance
+
+### Detection
+
+A single `IS_MOBILE` constant is evaluated once at page load:
+
+```js
+const IS_MOBILE = ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+               && window.matchMedia('(pointer: coarse)').matches;
+```
+
+The conjunctive check — touch API presence **and** a coarse pointer — avoids false positives on desktop browsers that report touch support (e.g. Chrome DevTools device emulation). The result is cached as a `const` so it is never re-evaluated inside hot paths like `playFreqs`.
+
+### Per-device Adjustments
+
+| Area | Desktop | Mobile | Reason |
+|---|---|---|---|
+| AudioContext sample rate | 44 100 Hz (browser default) | 22 050 Hz | Halves the DSP workload; Nyquist ceiling drops to 11 025 Hz, which is above all musically relevant content at typical transposition ranges |
+| WaveShaper oversample | `'4x'` | `'none'` | 4× oversampling internally processes four times as many samples through the soft-clip curve per audio frame; omitting it is the single largest per-note CPU saving |
+| Default preset | Lush Pad (4 unison voices, soft-saw, drive 5) | Soft Keys (1 voice, sine, drive 0) | Fewer oscillator nodes and no waveshaper path |
+
+### Distortion Curve Cache
+
+`makeDistortionCurve` previously allocated and computed a fresh `Float32Array(44100)` for every frequency node on every note-on event. The function is now optimised in two ways:
+
+- **Cached** — results are stored in `distortionCurveCache` (a `Map` keyed by the integer drive value). Subsequent calls for the same drive setting return the pre-computed array in O(1) without any allocation or arithmetic. The cache grows by at most one entry per distinct drive value used; with the slider range of 0–50 the maximum footprint is 51 × 16 KB ≈ 816 KB.
+- **Smaller lookup table** — `n_samples` reduced from 44 100 to 4 096. A transfer function for a smooth soft-clip does not benefit from audio-rate resolution; 4 096 points is perceptually indistinguishable from 44 100 at any sample rate.
+
+For the default Lush Pad preset (drive = 5, major chord with root doubling = 4 voice chains) this eliminates approximately 176 000 floating-point multiply–divide operations on every chord change after the first, replaced by a single `Map.get`.
+
+### Canvas Resize Guard
+
+`resizeCanvas` calls `getBoundingClientRect()` on every `drawPiano` invocation. This forces a synchronous style recalculation (layout thrash) whenever `drawPiano` is called immediately after `drawSequencer` has mutated the DOM (which happens on every play-note press in record mode).
+
+A `canvasNeedsResize` boolean flag now gates the call:
+
+- Initialised to `true` so the first `drawPiano` always measures and sizes the canvases.
+- Cleared to `false` after the resize completes.
+- Set back to `true` only by the `window.resize` event handler.
+
+Intermediate `drawPiano` calls (key presses, note-on/off, sequencer step updates) skip `getBoundingClientRect`, the `canvas.width` assignment (which clears the canvas and resets the 2D context), and the two `ctx.scale` calls entirely. The existing 2D context transforms remain valid until the window is actually resized.
