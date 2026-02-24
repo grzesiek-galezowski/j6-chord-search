@@ -289,6 +289,15 @@
       color: #475569;
       font-size: 18px;
     }
+    .seq-vol-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+    #seq-volume {
+      width: 80px;
+    }
   </style>
 </head>
 <body>
@@ -403,6 +412,9 @@
           <label><input type="radio" name="seq-mode" value="select" checked /> Select</label>
           <label><input type="radio" name="seq-mode" value="sh101" /> SH-101</label>
         </div>
+        <label class="seq-vol-label">
+          Vol: <input type="range" id="seq-volume" min="0" max="100" value="70" /><span class="val" id="seq-volume-val">70</span>
+        </label>
       </div>
       <div id="sequencer-steps" class="sequencer-steps"></div>
     </div>
@@ -593,6 +605,9 @@
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         initCustomWaves(audioCtx);
+        seqOutputGain = audioCtx.createGain();
+        seqOutputGain.gain.value = parseInt(document.getElementById('seq-volume').value) / 100;
+        seqOutputGain.connect(audioCtx.destination);
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
@@ -617,8 +632,9 @@
       return 440 * Math.pow(2, (midiNote - 69) / 12);
     }
 
-    function playFreqs(midiNote, freqs) {
+    function playFreqs(midiNote, freqs, destination = null) {
       if (!audioCtx) return;
+      const dest = destination || audioCtx.destination;
       const params = getSynthParams();
       const now = audioCtx.currentTime;
       const isStrumming = document.getElementById('strumming').checked;
@@ -648,7 +664,7 @@
         driveNode.connect(filter1);
         filter1.connect(filter2);
         filter2.connect(ampNode);
-        ampNode.connect(audioCtx.destination);
+        ampNode.connect(dest);
 
         ampNode.gain.setValueAtTime(0, noteStartTime);
         ampNode.gain.linearRampToValueAtTime(maxGain, noteStartTime + params.ampA);
@@ -1281,6 +1297,7 @@
     let seqIntervalId = null;
     let seqPlaying = false;
     let seqCurrentFreqs = null;
+    let seqOutputGain = null;
 
     function buildChordLabel(rootNote, chordMode, extensions, inversions) {
       const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -1331,7 +1348,7 @@
           if (seqCurrentFreqs !== null) {
             stopFreqs(SEQ_KEY);
           }
-          playFreqs(SEQ_KEY, step.freqs);
+          playFreqs(SEQ_KEY, step.freqs, seqOutputGain);
           seqCurrentFreqs = step.freqs;
         }
         // same chord: sustain, do nothing
@@ -1449,6 +1466,13 @@
       input.value = val;
       document.getElementById('seq-bpm-display').textContent = val;
       if (seqPlaying) seqRestartInterval();
+    });
+
+    document.getElementById('seq-volume').addEventListener('input', (e) => {
+      document.getElementById('seq-volume-val').textContent = e.target.value;
+      if (seqOutputGain) {
+        seqOutputGain.gain.setTargetAtTime(parseInt(e.target.value) / 100, audioCtx.currentTime, 0.015);
+      }
     });
 
     document.getElementById('seq-play').addEventListener('click', seqStart);
