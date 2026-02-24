@@ -211,6 +211,10 @@
       background: #38bdf8;
       color: #0f172a;
     }
+    #seq-record.active {
+      background: #ef4444;
+      color: white;
+    }
     .seq-mode-group {
       display: flex;
       gap: 10px;
@@ -408,9 +412,10 @@
         <button type="button" id="seq-play">&#9654; Play</button>
         <button type="button" id="seq-stop">&#9632; Stop</button>
         <button type="button" id="seq-reset">&#8635; Reset</button>
+        <button type="button" id="seq-record">&#9679; Record</button>
         <div class="seq-mode-group">
-          <label><input type="radio" name="seq-mode" value="select" checked /> Select</label>
-          <label><input type="radio" name="seq-mode" value="sh101" /> SH-101</label>
+          <label><input type="radio" name="seq-mode" value="select" /> Select</label>
+          <label><input type="radio" name="seq-mode" value="sh101" checked /> SH-101</label>
         </div>
         <label class="seq-vol-label">
           Vol: <input type="range" id="seq-volume" min="0" max="100" value="70" /><span class="val" id="seq-volume-val">70</span>
@@ -1089,7 +1094,7 @@
         const freqs = intervals.map(interval => midiToFreq(baseNote + interval));
         playFreqs(note, freqs);
 
-        if (!seqPlaying) {
+        if (seqRecordMode) {
           seqRecordToStep(seqSelectedStep, note);
           if (document.querySelector('input[name="seq-mode"]:checked').value === 'sh101') {
             seqAdvanceToNextStep();
@@ -1236,6 +1241,23 @@
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        seqSelectedStep = (seqSelectedStep - 1 + SEQ_STEPS) % SEQ_STEPS;
+        seqRefreshAllClasses();
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        seqSelectedStep = (seqSelectedStep + 1) % SEQ_STEPS;
+        seqRefreshAllClasses();
+        return;
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+        seqPlaying ? seqStop() : seqStart();
+        return;
+      }
       const key = e.key.toLowerCase();
       if (keyToNote[key] !== undefined) {
         noteOn(keyToNote[key]);
@@ -1307,6 +1329,7 @@
     let seqCurrentStep = -1;
     let seqIntervalId = null;
     let seqPlaying = false;
+    let seqRecordMode = false;
     let seqCurrentFreqs = null;
     let seqOutputGain = null;
 
@@ -1351,6 +1374,11 @@
       return (4 * 60 * 1000) / bpm;
     }
 
+    function seqSetRecordMode(val) {
+      seqRecordMode = val;
+      document.getElementById('seq-record').classList.toggle('active', val);
+    }
+
     function seqPlayStep(stepIndex) {
       const step = sequencerSteps[stepIndex];
       seqCurrentStep = stepIndex;
@@ -1383,6 +1411,7 @@
     function seqStart() {
       if (seqPlaying) return;
       initAudio();
+      seqSetRecordMode(false);
       seqPlaying = true;
       seqCurrentStep = 0;
       seqCurrentFreqs = null;
@@ -1396,6 +1425,7 @@
       clearInterval(seqIntervalId);
       seqIntervalId = null;
       seqPlaying = false;
+      seqSetRecordMode(false);
       if (seqCurrentFreqs !== null) {
         stopFreqs(SEQ_KEY);
         seqCurrentFreqs = null;
@@ -1515,6 +1545,9 @@
     document.getElementById('seq-play').addEventListener('click', seqStart);
     document.getElementById('seq-stop').addEventListener('click', seqStop);
     document.getElementById('seq-reset').addEventListener('click', seqReset);
+    document.getElementById('seq-record').addEventListener('click', () => {
+      seqSetRecordMode(!seqRecordMode);
+    });
 
     drawSequencer();
 

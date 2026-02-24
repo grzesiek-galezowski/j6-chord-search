@@ -30,6 +30,7 @@ Chord Fun is a browser-based polyphonic synthesiser and chord sequencer. It acce
    - [Steps and Data Model](#steps-and-data-model)
    - [Recording — Select Mode](#recording--select-mode)
    - [Recording — SH-101 Mode](#recording--sh-101-mode)
+   - [Record Mode](#record-mode)
    - [Sustain Logic](#sustain-logic)
    - [Playback](#playback)
    - [BPM Control](#bpm-control)
@@ -280,7 +281,7 @@ The **Synth Octave Shift** stepper (range −3 to +3) offsets all computed chord
 
 | Method | Notes |
 |---|---|
-| **QWERTY keyboard** | `keydown`/`keyup` on `window`; `e.repeat` events are ignored; ignored when focus is on `INPUT` or `SELECT` elements |
+| **QWERTY keyboard** | `keydown`/`keyup` on `window`; `e.repeat` events are ignored; ignored when focus is on `INPUT` or `SELECT` elements; `ArrowLeft`/`ArrowRight` move the sequencer selected step; `Space` toggles sequencer play/stop |
 | **Mouse** | `mousedown` on the canvas triggers note-on; `mouseup` or `mouseleave` triggers note-off; one active note tracked per canvas via `dataset.activeNote` |
 | **Touch** | Multi-touch via `touchstart`/`touchmove`/`touchend`/`touchcancel`; each touch point tracked independently by `touch.identifier`; `touchmove` handles gliding between keys |
 | **MIDI** | Web MIDI API; status bytes 0x80–0x8F (note-off) and 0x90–0x9F (note-on, velocity > 0) are handled; note-on with velocity 0 is treated as note-off |
@@ -307,21 +308,31 @@ Frequencies are computed at **record time** using the octave shift and chord sta
 
 ### Recording — Select Mode
 
-1. Click any of the 8 numbered step cells to select it (highlighted with a blue border). The selection persists until you click a different cell.
-2. Hold any combination of control-octave keys (chord mode, extensions, inversions) on the control piano.
-3. Press a root note on the play piano.
+1. Enable **Record** mode (⏺ Record button turns red).
+2. Click any of the 8 numbered step cells to select it (highlighted with a blue border). The selection persists until you click a different cell.
+3. Hold any combination of control-octave keys (chord mode, extensions, inversions) on the control piano.
+4. Press a root note on the play piano.
 
-The step is immediately overwritten with the new chord. Recording only occurs when the sequencer is **not** playing back — pressing play notes while the sequencer runs is for live improvisation and does not affect stored steps.
+The step is immediately overwritten with the new chord. Recording is gated by the Record button — pressing **Play** or **Stop** automatically disables record mode.
 
 ### Recording — SH-101 Mode
 
-Works identically to Select Mode except the selected step advances to the next step automatically after every root note press. This allows filling steps in order without clicking each cell:
+SH-101 is the **default** recording mode. Works identically to Select Mode except the selected step advances to the next step automatically after every root note press. This allows filling steps in order without clicking each cell:
 
 ```
 press root → records to step N → selection moves to step N+1 → press root → …
 ```
 
 After step 8 the selection wraps back to step 1.
+
+### Record Mode
+
+Recording is only active when **Record** mode is enabled. The ⏺ Record button acts as a toggle:
+
+- **Inactive** (default): playing root notes triggers live synthesis only; sequencer steps are not overwritten.
+- **Active** (button turns red): each root note press overwrites the selected step (and advances in SH-101 mode).
+
+Pressing **▶ Play** or **■ Stop** automatically disables record mode.
 
 ### Sustain Logic
 
@@ -376,13 +387,17 @@ The BPM stepper adjusts in steps of 5, clamped to the range 20–300. Changing t
 |---|---|
 | **Vol slider** | Sets the `seqOutputGain` level (0–100%, default 70%); updates in real time via `setTargetAtTime` with a 15 ms smoothing constant — adjusting while a chord sustains takes effect immediately without retriggering the envelope |
 | **− / + (BPM)** | Decrease / increase BPM by 5; restarts interval if playing |
-| **▶ Play** | Starts playback from step 1; no-op if already playing; highlights blue when active |
-| **■ Stop** | Stops playback and releases the current chord through its Release envelope |
+| **▶ Play** | Starts playback from step 1; no-op if already playing; highlights blue when active; disables record mode |
+| **■ Stop** | Stops playback and releases the current chord through its Release envelope; disables record mode |
 | **↺ Reset** | Stops playback, clears all 8 steps, resets selected step to 1 |
+| **⏺ Record** | Toggles record mode on/off; button turns red when active; automatically disabled by Play or Stop |
 | **Select radio** | Recording mode: selected step stays fixed after each note press |
-| **SH-101 radio** | Recording mode: selected step advances after each note press |
+| **SH-101 radio** | Recording mode (default): selected step advances after each note press |
 | **Step cell click** | Sets the selected step (blue border) |
 | **× button on step** | Clears that individual step without affecting others or stopping playback |
+| **←** (keyboard) | Move selected step to the previous step (wraps from step 1 to step 8) |
+| **→** (keyboard) | Move selected step to the next step (wraps from step 8 to step 1) |
+| **Space** (keyboard) | Toggle play/stop |
 
 ---
 
