@@ -174,6 +174,121 @@
         gap: 10px;
       }
     }
+    .sequencer-section {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .sequencer-section h3 {
+      color: #38bdf8;
+      margin: 0 0 12px 0;
+      font-size: 16px;
+    }
+    .sequencer-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .sequencer-header > button {
+      padding: 6px 14px;
+      background: #0f172a;
+      color: #e5e7eb;
+      border: 1px solid #38bdf8;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .sequencer-header > button:active {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+    #seq-play.active {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+    .seq-mode-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .seq-mode-group label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .sequencer-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    @media (min-width: 600px) {
+      .sequencer-steps {
+        grid-template-columns: repeat(8, 1fr);
+      }
+    }
+    .seq-step {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 6px;
+      padding: 8px 4px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      min-height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      user-select: none;
+    }
+    .seq-step.selected {
+      border-color: #38bdf8;
+    }
+    .seq-step.playing {
+      border-color: #fbbf24;
+      background: #1a1500;
+    }
+    .seq-step.selected.playing {
+      border-color: #f97316;
+    }
+    .seq-step-num {
+      font-size: 10px;
+      color: #64748b;
+    }
+    .seq-step-label {
+      font-size: 11px;
+      color: #e5e7eb;
+      font-weight: bold;
+      line-height: 1.3;
+    }
+    .seq-step-clear {
+      position: absolute;
+      top: 2px;
+      right: 3px;
+      width: 14px;
+      height: 14px;
+      font-size: 12px;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+    }
+    .seq-step-clear:hover {
+      color: #ef4444;
+    }
+    .seq-step-empty {
+      color: #475569;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
@@ -271,6 +386,25 @@
     <div class="piano-container">
       <canvas id="piano-control" width="420" height="150"></canvas>
       <canvas id="piano-play" width="630" height="150"></canvas>
+    </div>
+    <div class="sequencer-section">
+      <h3>Chord Sequencer</h3>
+      <div class="sequencer-header">
+        <div class="stepper">
+          <button type="button" id="seq-bpm-down">-</button>
+          <span>BPM:&nbsp;<span id="seq-bpm-display">120</span></span>
+          <button type="button" id="seq-bpm-up">+</button>
+        </div>
+        <input type="hidden" id="seq-bpm" value="120" />
+        <button type="button" id="seq-play">&#9654; Play</button>
+        <button type="button" id="seq-stop">&#9632; Stop</button>
+        <button type="button" id="seq-reset">&#8635; Reset</button>
+        <div class="seq-mode-group">
+          <label><input type="radio" name="seq-mode" value="select" checked /> Select</label>
+          <label><input type="radio" name="seq-mode" value="sh101" /> SH-101</label>
+        </div>
+      </div>
+      <div id="sequencer-steps" class="sequencer-steps"></div>
     </div>
   </div>
   <script>
@@ -928,6 +1062,13 @@
         const intervals = getChordIntervals();
         const freqs = intervals.map(interval => midiToFreq(baseNote + interval));
         playFreqs(note, freqs);
+
+        if (!seqPlaying) {
+          seqRecordToStep(seqSelectedStep, note);
+          if (document.querySelector('input[name="seq-mode"]:checked').value === 'sh101') {
+            seqAdvanceToNextStep();
+          }
+        }
       }
     }
 
@@ -1130,6 +1271,191 @@
     window.addEventListener('resize', () => {
       drawPiano();
     });
+
+    // === CHORD SEQUENCER ===
+    const SEQ_STEPS = 8;
+    const SEQ_KEY = 'seq';
+    const sequencerSteps = Array(SEQ_STEPS).fill(null);
+    let seqSelectedStep = 0;
+    let seqCurrentStep = -1;
+    let seqIntervalId = null;
+    let seqPlaying = false;
+    let seqCurrentFreqs = null;
+
+    function buildChordLabel(rootNote, chordMode, extensions, inversions) {
+      const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const noteName = noteNames[rootNote % 12];
+      const parts = [noteName];
+      if (chordMode) parts.push(chordMode.name.substring(0, 3));
+      if (extensions && extensions.size > 0) {
+        parts.push(Array.from(extensions).map(e => e.name).join('+'));
+      }
+      if (inversions && inversions.size > 0) {
+        parts.push(Array.from(inversions).map(e => e.name).join('+'));
+      }
+      return parts.join(' ');
+    }
+
+    function freqsMatch(a, b) {
+      if (!a && !b) return true;
+      if (!a || !b) return false;
+      if (a.length !== b.length) return false;
+      return a.every((f, i) => Math.abs(f - b[i]) < 0.01);
+    }
+
+    function seqRecordToStep(stepIndex, rootNote) {
+      const shift = parseInt(document.getElementById('octave-shift').value) || 0;
+      const baseNote = rootNote + (shift * 12);
+      const intervals = getChordIntervals();
+      const freqs = intervals.map(interval => midiToFreq(baseNote + interval));
+      const label = buildChordLabel(rootNote, activeChordMode, activeExtensions, activeInversions);
+      sequencerSteps[stepIndex] = { rootNote, label, freqs };
+      drawSequencer();
+    }
+
+    function seqAdvanceToNextStep() {
+      seqSelectedStep = (seqSelectedStep + 1) % SEQ_STEPS;
+      drawSequencer();
+    }
+
+    function seqGetBarMs() {
+      const bpm = parseInt(document.getElementById('seq-bpm').value) || 120;
+      return (4 * 60 * 1000) / bpm;
+    }
+
+    function seqPlayStep(stepIndex) {
+      const step = sequencerSteps[stepIndex];
+      seqCurrentStep = stepIndex;
+      if (step !== null) {
+        if (!freqsMatch(step.freqs, seqCurrentFreqs)) {
+          if (seqCurrentFreqs !== null) {
+            stopFreqs(SEQ_KEY);
+          }
+          playFreqs(SEQ_KEY, step.freqs);
+          seqCurrentFreqs = step.freqs;
+        }
+        // same chord: sustain, do nothing
+      } else {
+        if (seqCurrentFreqs !== null) {
+          stopFreqs(SEQ_KEY);
+          seqCurrentFreqs = null;
+        }
+      }
+      drawSequencer();
+    }
+
+    function seqRestartInterval() {
+      if (seqIntervalId) clearInterval(seqIntervalId);
+      seqIntervalId = setInterval(() => {
+        seqCurrentStep = (seqCurrentStep + 1) % SEQ_STEPS;
+        seqPlayStep(seqCurrentStep);
+      }, seqGetBarMs());
+    }
+
+    function seqStart() {
+      if (seqPlaying) return;
+      initAudio();
+      seqPlaying = true;
+      seqCurrentStep = 0;
+      seqCurrentFreqs = null;
+      seqPlayStep(0);
+      seqRestartInterval();
+      document.getElementById('seq-play').classList.add('active');
+    }
+
+    function seqStop() {
+      if (!seqPlaying) return;
+      clearInterval(seqIntervalId);
+      seqIntervalId = null;
+      seqPlaying = false;
+      if (seqCurrentFreqs !== null) {
+        stopFreqs(SEQ_KEY);
+        seqCurrentFreqs = null;
+      }
+      seqCurrentStep = -1;
+      document.getElementById('seq-play').classList.remove('active');
+      drawSequencer();
+    }
+
+    function seqReset() {
+      seqStop();
+      for (let i = 0; i < SEQ_STEPS; i++) {
+        sequencerSteps[i] = null;
+      }
+      seqSelectedStep = 0;
+      drawSequencer();
+    }
+
+    function drawSequencer() {
+      const container = document.getElementById('sequencer-steps');
+      container.innerHTML = '';
+      for (let i = 0; i < SEQ_STEPS; i++) {
+        const step = sequencerSteps[i];
+        const div = document.createElement('div');
+        div.className = 'seq-step';
+        if (i === seqSelectedStep) div.classList.add('selected');
+        if (seqPlaying && i === seqCurrentStep) div.classList.add('playing');
+
+        const numSpan = document.createElement('span');
+        numSpan.className = 'seq-step-num';
+        numSpan.textContent = i + 1;
+        div.appendChild(numSpan);
+
+        if (step) {
+          const lbl = document.createElement('span');
+          lbl.className = 'seq-step-label';
+          lbl.textContent = step.label;
+          div.appendChild(lbl);
+
+          const clearBtn = document.createElement('button');
+          clearBtn.className = 'seq-step-clear';
+          clearBtn.textContent = '\u00d7';
+          clearBtn.title = 'Clear step';
+          clearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sequencerSteps[i] = null;
+            drawSequencer();
+          });
+          div.appendChild(clearBtn);
+        } else {
+          const empty = document.createElement('span');
+          empty.className = 'seq-step-empty';
+          empty.textContent = '\u2013';
+          div.appendChild(empty);
+        }
+
+        div.addEventListener('click', () => {
+          seqSelectedStep = i;
+          drawSequencer();
+        });
+
+        container.appendChild(div);
+      }
+    }
+
+    document.getElementById('seq-bpm-down').addEventListener('click', () => {
+      const input = document.getElementById('seq-bpm');
+      let val = parseInt(input.value) || 120;
+      val = Math.max(20, val - 5);
+      input.value = val;
+      document.getElementById('seq-bpm-display').textContent = val;
+      if (seqPlaying) seqRestartInterval();
+    });
+
+    document.getElementById('seq-bpm-up').addEventListener('click', () => {
+      const input = document.getElementById('seq-bpm');
+      let val = parseInt(input.value) || 120;
+      val = Math.min(300, val + 5);
+      input.value = val;
+      document.getElementById('seq-bpm-display').textContent = val;
+      if (seqPlaying) seqRestartInterval();
+    });
+
+    document.getElementById('seq-play').addEventListener('click', seqStart);
+    document.getElementById('seq-stop').addEventListener('click', seqStop);
+    document.getElementById('seq-reset').addEventListener('click', seqReset);
+
+    drawSequencer();
 
     // Initial draw needs to wait for layout to complete so bounding client rect is accurate
     setTimeout(drawPiano, 0);
