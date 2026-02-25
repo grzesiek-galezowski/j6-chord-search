@@ -404,7 +404,9 @@ An optional audible metronome can be enabled via the **Metro** checkbox in the s
 | Quarter-note beat | 900 Hz | 0.25 | `(i × 4) mod divisions = 0`, `i > 0` |
 | Subdivision | 700 Hz | 0.15 | All other clicks |
 
-Each click is a sine-wave burst that decays to near-silence in ~60 ms. Clicks route directly to `AudioDestination` (bypassing `seqOutputGain`) so the sequencer volume slider does not affect metronome level. Timing uses `audioCtx.currentTime + 5 ms` as the scheduling base to compensate for JavaScript timer jitter.
+Each click is a sine-wave burst that decays to near-silence in ~60 ms. Clicks route directly to `AudioDestination` (bypassing `seqOutputGain`) so the sequencer volume slider does not affect metronome level.
+
+`seqScheduleMetronome` accepts a `scheduleOffset` parameter (default `5 ms`) that sets the absolute scheduling base as `audioCtx.currentTime + scheduleOffset`. When called from `seqPlayStep` the offset is `50 ms` — identical to the look-ahead used by `playFreqs` — so the first metronome click and the chord change are scheduled to the same audio-clock moment. The default `5 ms` value is retained for any standalone call that is not tied to a chord change.
 
 ### Controls Reference
 
