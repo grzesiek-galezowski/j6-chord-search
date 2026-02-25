@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chord Fun</title>
-  <style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chord Fun</title>
+    <style>
     body {
       font-family: monospace;
       margin: 0;
@@ -403,200 +403,200 @@
   </style>
 </head>
 <body>
-  <div id="splash-screen">
+<div id="splash-screen">
     <h1>Chord Fun</h1>
     <p>Click anywhere to start</p>
-  </div>
-  <a href="./index.html" class="back-link">← Back to Tools</a>
-  <div id="container">
+</div>
+<a href="./index.html" class="back-link">← Back to Tools</a>
+<div id="container">
     <div class="controls">
-      <label>
-        Preset:
-        <select id="preset-selector">
-          <option value="lush-pad">Lush Pad</option>
-          <option value="plucky-synth">Plucky Synth</option>
-          <option value="dirty-bass">Dirty Bass</option>
-          <option value="soft-keys">Soft Keys</option>
-          <option value="basic-triangle">Basic Triangle</option>
-        </select>
-      </label>
+        <label>
+            Preset:
+            <select id="preset-selector">
+                <option value="lush-pad">Lush Pad</option>
+                <option value="plucky-synth">Plucky Synth</option>
+                <option value="dirty-bass">Dirty Bass</option>
+                <option value="soft-keys">Soft Keys</option>
+                <option value="basic-triangle">Basic Triangle</option>
+            </select>
+        </label>
     </div>
     <div class="synth-controls">
-      <div class="control-group">
-        <h3>Oscillator</h3>
-        <label>Waveform: 
-          <select id="osc-wave">
-            <option value="triangle">Triangle</option>
-            <option value="sawtooth">Sawtooth</option>
-            <option value="square">Square</option>
-            <option value="sine">Sine</option>
-            <option value="organ">Organ</option>
-            <option value="brass">Brass</option>
-            <option value="bell">Bell</option>
-            <option value="voice">Voice</option>
-            <option value="pluck">Pluck</option>
-            <option value="soft-saw">Soft Saw</option>
-            <option value="hollow-square">Hollow Square</option>
-            <option value="metallic">Metallic</option>
-            <option value="sub-bass">Sub Bass</option>
-            <option value="harmonic-noise">Harmonic Noise</option>
-          </select>
-        </label>
-        <label>Unison Voices: <input type="number" id="unison-voices" value="1" min="1" max="8" /></label>
-        <label>Unison Detune: <input type="range" id="unison-detune" value="10" min="0" max="100" /><span class="val">10</span></label>
-      </div>
-      <div class="control-group">
-        <h3>Amp Envelope</h3>
-        <label>Attack: <input type="range" id="amp-a" value="10" min="0" max="2000" /><span class="val">10</span></label>
-        <label>Decay: <input type="range" id="amp-d" value="100" min="0" max="2000" /><span class="val">100</span></label>
-        <label>Sustain: <input type="range" id="amp-s" value="50" min="0" max="100" /><span class="val">50</span></label>
-        <label>Release: <input type="range" id="amp-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
-      </div>
-      <div class="control-group">
-        <h3>Ladder Filter</h3>
-        <label>Cutoff: <input type="range" id="filt-cutoff" value="2000" min="20" max="20000" /><span class="val">2000</span></label>
-        <label>Resonance: <input type="range" id="filt-res" value="1" min="0.1" max="20" step="0.1" /><span class="val">1</span></label>
-        <label>Drive: <input type="range" id="filt-drive" value="0" min="0" max="50" /><span class="val">0</span></label>
-      </div>
-      <div class="control-group">
-        <h3>Filter Envelope</h3>
-        <label>Amount: <input type="range" id="filt-env-amt" value="0" min="-10000" max="10000" /><span class="val">0</span></label>
-        <label>Attack: <input type="range" id="filt-a" value="10" min="0" max="2000" /><span class="val">10</span></label>
-        <label>Decay: <input type="range" id="filt-d" value="100" min="0" max="2000" /><span class="val">100</span></label>
-        <label>Sustain: <input type="range" id="filt-s" value="50" min="0" max="100" /><span class="val">50</span></label>
-        <label>Release: <input type="range" id="filt-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
-      </div>
+        <div class="control-group">
+            <h3>Oscillator</h3>
+            <label>Waveform: 
+                <select id="osc-wave">
+                    <option value="triangle">Triangle</option>
+                    <option value="sawtooth">Sawtooth</option>
+                    <option value="square">Square</option>
+                    <option value="sine">Sine</option>
+                    <option value="organ">Organ</option>
+                    <option value="brass">Brass</option>
+                    <option value="bell">Bell</option>
+                    <option value="voice">Voice</option>
+                    <option value="pluck">Pluck</option>
+                    <option value="soft-saw">Soft Saw</option>
+                    <option value="hollow-square">Hollow Square</option>
+                    <option value="metallic">Metallic</option>
+                    <option value="sub-bass">Sub Bass</option>
+                    <option value="harmonic-noise">Harmonic Noise</option>
+                </select>
+            </label>
+            <label>Unison Voices: <input type="number" id="unison-voices" value="1" min="1" max="8" /></label>
+            <label>Unison Detune: <input type="range" id="unison-detune" value="10" min="0" max="100" /><span class="val">10</span></label>
+        </div>
+        <div class="control-group">
+            <h3>Amp Envelope</h3>
+            <label>Attack: <input type="range" id="amp-a" value="10" min="0" max="2000" /><span class="val">10</span></label>
+            <label>Decay: <input type="range" id="amp-d" value="100" min="0" max="2000" /><span class="val">100</span></label>
+            <label>Sustain: <input type="range" id="amp-s" value="50" min="0" max="100" /><span class="val">50</span></label>
+            <label>Release: <input type="range" id="amp-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
+        </div>
+        <div class="control-group">
+            <h3>Ladder Filter</h3>
+            <label>Cutoff: <input type="range" id="filt-cutoff" value="2000" min="20" max="20000" /><span class="val">2000</span></label>
+            <label>Resonance: <input type="range" id="filt-res" value="1" min="0.1" max="20" step="0.1" /><span class="val">1</span></label>
+            <label>Drive: <input type="range" id="filt-drive" value="0" min="0" max="50" /><span class="val">0</span></label>
+        </div>
+        <div class="control-group">
+            <h3>Filter Envelope</h3>
+            <label>Amount: <input type="range" id="filt-env-amt" value="0" min="-10000" max="10000" /><span class="val">0</span></label>
+            <label>Attack: <input type="range" id="filt-a" value="10" min="0" max="2000" /><span class="val">10</span></label>
+            <label>Decay: <input type="range" id="filt-d" value="100" min="0" max="2000" /><span class="val">100</span></label>
+            <label>Sustain: <input type="range" id="filt-s" value="50" min="0" max="100" /><span class="val">50</span></label>
+            <label>Release: <input type="range" id="filt-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
+        </div>
     </div>
     <div class="controls">
-      <div class="stepper-group">
-        <label>Synth Octave Shift:</label>
-        <div class="stepper">
-          <button type="button" id="octave-down">-</button>
-          <span id="octave-display">0</span>
-          <button type="button" id="octave-up">+</button>
+        <div class="stepper-group">
+            <label>Synth Octave Shift:</label>
+            <div class="stepper">
+                <button type="button" id="octave-down">-</button>
+                <span id="octave-display">0</span>
+                <button type="button" id="octave-up">+</button>
+            </div>
+            <input type="hidden" id="octave-shift" value="0" />
         </div>
-        <input type="hidden" id="octave-shift" value="0" />
-      </div>
-      <label>
-        Hold Mode:
-        <input type="checkbox" id="hold-mode" />
-      </label>
-      <label>
-        Root Doubling (-1 Oct):
-        <input type="checkbox" id="root-doubling" checked />
-      </label>
-      <label>
-        Strumming:
-        <input type="checkbox" id="strumming" />
-      </label>
+        <label>
+            Hold Mode:
+            <input type="checkbox" id="hold-mode" />
+        </label>
+        <label>
+            Root Doubling (-1 Oct):
+            <input type="checkbox" id="root-doubling" checked />
+        </label>
+        <label>
+            Strumming:
+            <input type="checkbox" id="strumming" />
+        </label>
     </div>
     <div class="status">
-      <div>Active Chord Mode: <span id="active-chord" class="active-modes">None</span></div>
-      <div>Active Extensions: <span id="active-exts" class="active-modes">None</span></div>
+        <div>Active Chord Mode: <span id="active-chord" class="active-modes">None</span></div>
+        <div>Active Extensions: <span id="active-exts" class="active-modes">None</span></div>
     </div>
     <div class="piano-container">
-      <canvas id="piano-control" width="420" height="150"></canvas>
-      <canvas id="piano-play" width="630" height="150"></canvas>
+        <canvas id="piano-control" width="420" height="150"></canvas>
+        <canvas id="piano-play" width="630" height="150"></canvas>
     </div>
     <div class="sequencer-section">
-      <h3>Chord Sequencer</h3>
-      <div class="sequencer-header">
-        <div class="stepper">
-          <button type="button" id="seq-bpm-down">-</button>
-          <span>BPM:&nbsp;<span id="seq-bpm-display">120</span></span>
-          <button type="button" id="seq-bpm-up">+</button>
+        <h3>Chord Sequencer</h3>
+        <div class="sequencer-header">
+            <div class="stepper">
+                <button type="button" id="seq-bpm-down">-</button>
+                <span>BPM:&nbsp;<span id="seq-bpm-display">120</span></span>
+                <button type="button" id="seq-bpm-up">+</button>
+            </div>
+            <input type="hidden" id="seq-bpm" value="120" />
+            <button type="button" id="seq-play" title="Play / Stop">&#9654;</button>
+            <button type="button" id="seq-reset" title="Reset">&#8635;</button>
+            <button type="button" id="seq-record" title="Record">&#9679;</button>
+            <div class="seq-mode-group">
+                <label><input type="radio" name="seq-mode" value="select" /> Select</label>
+                <label><input type="radio" name="seq-mode" value="sh101" checked /> SH-101</label>
+            </div>
+            <label class="seq-vol-label">
+                Vol: <input type="range" id="seq-volume" min="0" max="100" value="70" /><span class="val" id="seq-volume-val">70</span>
+            </label>
+            <label class="seq-vol-label">
+                Metro: <input type="checkbox" id="seq-metronome" />
+                <select id="seq-metro-res">
+                    <option value="1">1 bar</option>
+                    <option value="2">1/2</option>
+                    <option value="4" selected>1/4</option>
+                    <option value="8">1/8</option>
+                    <option value="16">1/16</option>
+                </select>
+            </label>
         </div>
-        <input type="hidden" id="seq-bpm" value="120" />
-        <button type="button" id="seq-play" title="Play / Stop">&#9654;</button>
-        <button type="button" id="seq-reset" title="Reset">&#8635;</button>
-        <button type="button" id="seq-record" title="Record">&#9679;</button>
-        <div class="seq-mode-group">
-          <label><input type="radio" name="seq-mode" value="select" /> Select</label>
-          <label><input type="radio" name="seq-mode" value="sh101" checked /> SH-101</label>
-        </div>
-        <label class="seq-vol-label">
-          Vol: <input type="range" id="seq-volume" min="0" max="100" value="70" /><span class="val" id="seq-volume-val">70</span>
-        </label>
-        <label class="seq-vol-label">
-          Metro: <input type="checkbox" id="seq-metronome" />
-          <select id="seq-metro-res">
-            <option value="1">1 bar</option>
-            <option value="2">1/2</option>
-            <option value="4" selected>1/4</option>
-            <option value="8">1/8</option>
-            <option value="16">1/16</option>
-          </select>
-        </label>
-      </div>
-      <div id="sequencer-steps" class="sequencer-steps"></div>
+        <div id="sequencer-steps" class="sequencer-steps"></div>
     </div>
-  </div>
-  <div id="help-panel">
+</div>
+<div id="help-panel">
     <button id="help-panel-tab" title="Toggle keyboard shortcuts &amp; controls">&#9000;</button>
     <div id="help-panel-content">
-      <h3>Keyboard Shortcuts</h3>
-      <h4>Chord Modifiers</h4>
-      <table class="help-table">
-        <tr><td>z</td><td>Major</td></tr>
-        <tr><td>s</td><td>Diminished</td></tr>
-        <tr><td>x</td><td>Minor</td></tr>
-        <tr><td>d</td><td>Suspended</td></tr>
-        <tr><td>c</td><td>Inversion 1</td></tr>
-        <tr><td>v</td><td>Inversion 2</td></tr>
-        <tr><td>g</td><td>Ext: 6th</td></tr>
-        <tr><td>b</td><td>Ext: m7</td></tr>
-        <tr><td>h</td><td>Ext: M7</td></tr>
-        <tr><td>n</td><td>Ext: 9th</td></tr>
-      </table>
-      <h4>Play — Octave 1 (C3–B3)</h4>
-      <table class="help-table">
-        <tr><td>q-u</td><td>C3-B3</td></tr>
-      </table>
-      <h4>Play — Octave 2 (C4–G4)</h4>
-      <table class="help-table">
-        <tr><td>i-]</td><td>C4-G4</td></tr>
-      </table>
-      <h4>Sequencer</h4>
-      <table class="help-table">
-        <tr><td>Space</td><td>Play / Stop sequencer</td></tr>
-        <tr><td>&#8592;</td><td>Select prev step</td></tr>
-        <tr><td>&#8594;</td><td>Select next step</td></tr>
-        <tr><td>Ctrl+&#8592;</td><td>Octave down</td></tr>
-        <tr><td>Ctrl+&#8594;</td><td>Octave up</td></tr>
-      </table>
-      <h3> </h3>
-      <h3>Controls</h3>
-      <h4>Chord Engine</h4>
-      <table class="help-table">
-        <tr><td>Preset</td><td>Load synth preset</td></tr>
-        <tr><td>Oct Shift</td><td>Transpose &#177;3 octaves</td></tr>
-        <tr><td>Hold Mode</td><td>Latch modifiers; press again to toggle each</td></tr>
-        <tr><td>Root Dbl</td><td>Add root one octave below</td></tr>
-        <tr><td>Strumming</td><td>Guitar voicing + 30 ms note stagger</td></tr>
-      </table>
-      <h4>Sequencer</h4>
-      <table class="help-table">
-        <tr><td>BPM &#177;</td><td>Tempo 20–300 (step 5)</td></tr>
-        <tr><td>&#9654;/&#9632;</td><td>Play / Stop (toggle)</td></tr>
-        <tr><td>&#8635;</td><td>Stop + clear all steps</td></tr>
-        <tr><td>&#9679; Rec</td><td>Toggle record (red = on)</td></tr>
-        <tr><td>Select</td><td>Record to fixed selected step</td></tr>
-        <tr><td>SH-101</td><td>Record + auto-advance step</td></tr>
-        <tr><td>Vol</td><td>Sequencer output level</td></tr>
-        <tr><td>Metro</td><td>Metronome (playback only)</td></tr>
-        <tr><td>Res</td><td>Metro density: 1 bar – 1/16</td></tr>
-      </table>
-      <h4>Synth Engine</h4>
-      <table class="help-table">
-        <tr><td>Waveform</td><td>Oscillator shape (14 types)</td></tr>
-        <tr><td>Unison</td><td>Stacked voices + detune spread</td></tr>
-        <tr><td>Amp Env</td><td>ADSR volume envelope</td></tr>
-        <tr><td>Filter</td><td>Dual LP ladder; cutoff, Q, drive</td></tr>
-        <tr><td>Filt Env</td><td>Cutoff ADSR sweep (&#177;10 kHz)</td></tr>
-      </table>
+        <h3>Keyboard Shortcuts</h3>
+        <h4>Chord Modifiers</h4>
+        <table class="help-table">
+            <tr><td>z</td><td>Major</td></tr>
+            <tr><td>s</td><td>Diminished</td></tr>
+            <tr><td>x</td><td>Minor</td></tr>
+            <tr><td>d</td><td>Suspended</td></tr>
+            <tr><td>c</td><td>Inversion 1</td></tr>
+            <tr><td>v</td><td>Inversion 2</td></tr>
+            <tr><td>g</td><td>Ext: 6th</td></tr>
+            <tr><td>b</td><td>Ext: m7</td></tr>
+            <tr><td>h</td><td>Ext: M7</td></tr>
+            <tr><td>n</td><td>Ext: 9th</td></tr>
+        </table>
+        <h4>Play — Octave 1 (C3–B3)</h4>
+        <table class="help-table">
+            <tr><td>q-u</td><td>C3-B3</td></tr>
+        </table>
+        <h4>Play — Octave 2 (C4–G4)</h4>
+        <table class="help-table">
+            <tr><td>i-]</td><td>C4-G4</td></tr>
+        </table>
+        <h4>Sequencer</h4>
+        <table class="help-table">
+            <tr><td>Space</td><td>Play / Stop sequencer</td></tr>
+            <tr><td>&#8592;</td><td>Select prev step</td></tr>
+            <tr><td>&#8594;</td><td>Select next step</td></tr>
+            <tr><td>Ctrl+&#8592;</td><td>Octave down</td></tr>
+            <tr><td>Ctrl+&#8594;</td><td>Octave up</td></tr>
+        </table>
+        <h3> </h3>
+        <h3>Controls</h3>
+        <h4>Chord Engine</h4>
+        <table class="help-table">
+            <tr><td>Preset</td><td>Load synth preset</td></tr>
+            <tr><td>Oct Shift</td><td>Transpose &#177;3 octaves</td></tr>
+            <tr><td>Hold Mode</td><td>Latch modifiers; press again to toggle each</td></tr>
+            <tr><td>Root Dbl</td><td>Add root one octave below</td></tr>
+            <tr><td>Strumming</td><td>Guitar voicing + 30 ms note stagger</td></tr>
+        </table>
+        <h4>Sequencer</h4>
+        <table class="help-table">
+            <tr><td>BPM &#177;</td><td>Tempo 20–300 (step 5)</td></tr>
+            <tr><td>&#9654;/&#9632;</td><td>Play / Stop (toggle)</td></tr>
+            <tr><td>&#8635;</td><td>Stop + clear all steps</td></tr>
+            <tr><td>&#9679; Rec</td><td>Toggle record (red = on)</td></tr>
+            <tr><td>Select</td><td>Record to fixed selected step</td></tr>
+            <tr><td>SH-101</td><td>Record + auto-advance step</td></tr>
+            <tr><td>Vol</td><td>Sequencer output level</td></tr>
+            <tr><td>Metro</td><td>Metronome (playback only)</td></tr>
+            <tr><td>Res</td><td>Metro density: 1 bar – 1/16</td></tr>
+        </table>
+        <h4>Synth Engine</h4>
+        <table class="help-table">
+            <tr><td>Waveform</td><td>Oscillator shape (14 types)</td></tr>
+            <tr><td>Unison</td><td>Stacked voices + detune spread</td></tr>
+            <tr><td>Amp Env</td><td>ADSR volume envelope</td></tr>
+            <tr><td>Filter</td><td>Dual LP ladder; cutoff, Q, drive</td></tr>
+            <tr><td>Filt Env</td><td>Cutoff ADSR sweep (&#177;10 kHz)</td></tr>
+        </table>
     </div>
-  </div>
-  <script>
+</div>
+<script>
     // Audio Context
     let audioCtx = null;
     const activeOscillators = new Map(); // key: midiNote, value: array of voice objects
@@ -1576,12 +1576,12 @@
       osc.stop(time + 0.08);
     }
 
-    function seqScheduleMetronome() {
+    function seqScheduleMetronome(scheduleOffset = 0.005) {
       if (!audioCtx || !document.getElementById('seq-metronome').checked) return;
       const divisions = parseInt(document.getElementById('seq-metro-res').value) || 4;
       const barSec = seqGetBarMs() / 1000;
       const divSec = barSec / divisions;
-      const now = audioCtx.currentTime + 0.005;
+      const now = audioCtx.currentTime + scheduleOffset;
       for (let i = 0; i < divisions; i++) {
         let accent;
         if (i === 0) {
@@ -1595,27 +1595,27 @@
       }
     }
 
-    function seqPlayStep(stepIndex) {
-      const step = sequencerSteps[stepIndex];
-      seqCurrentStep = stepIndex;
-      if (step !== null) {
-        if (!freqsMatch(step.freqs, seqCurrentFreqs)) {
-          if (seqCurrentFreqs !== null) {
-            stopFreqs(SEQ_KEY);
+      function seqPlayStep(stepIndex) {
+          const step = sequencerSteps[stepIndex];
+          seqCurrentStep = stepIndex;
+          if (step !== null) {
+              if (!freqsMatch(step.freqs, seqCurrentFreqs)) {
+                  if (seqCurrentFreqs !== null) {
+                      stopFreqs(SEQ_KEY);
+                  }
+                  playFreqs(SEQ_KEY, step.freqs, seqOutputGain, 0.05);
+                  seqCurrentFreqs = step.freqs;
+              }
+              // same chord: sustain, do nothing
+          } else {
+              if (seqCurrentFreqs !== null) {
+                  stopFreqs(SEQ_KEY);
+                  seqCurrentFreqs = null;
+              }
           }
-          playFreqs(SEQ_KEY, step.freqs, seqOutputGain, 0.05);
-          seqCurrentFreqs = step.freqs;
-        }
-        // same chord: sustain, do nothing
-      } else {
-        if (seqCurrentFreqs !== null) {
-          stopFreqs(SEQ_KEY);
-          seqCurrentFreqs = null;
-        }
+          seqScheduleMetronome(0.05);
+          seqRefreshAllClasses();
       }
-      seqScheduleMetronome();
-      seqRefreshAllClasses();
-    }
 
     function seqRestartInterval() {
       if (seqIntervalId) clearInterval(seqIntervalId);
