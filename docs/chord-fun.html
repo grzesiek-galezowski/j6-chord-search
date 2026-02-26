@@ -228,14 +228,84 @@
       cursor: pointer;
     }
     .sequencer-steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      display: flex;
+      flex-direction: column;
       gap: 8px;
     }
+    .seq-row {
+      display: flex;
+      gap: 4px;
+      align-items: stretch;
+    }
+    .seq-row-steps {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
     @media (min-width: 600px) {
-      .sequencer-steps {
+      .seq-row-steps {
         grid-template-columns: repeat(8, 1fr);
       }
+    }
+    .seq-row-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      justify-content: center;
+      align-items: center;
+      min-width: 28px;
+    }
+    .seq-row-controls > button {
+      width: 24px;
+      height: 20px;
+      background: #0f172a;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: monospace;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .seq-row-controls > button:active {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+    .seq-row-repeat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    .seq-row-repeat button {
+      width: 24px;
+      height: 14px;
+      background: #0f172a;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 8px;
+      font-family: monospace;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .seq-row-repeat button:active {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+    .seq-row-repeat span {
+      font-size: 11px;
+      color: #e5e7eb;
+      text-align: center;
+      min-width: 16px;
+      line-height: 1.2;
     }
     .seq-step {
       background: #0f172a;
@@ -561,6 +631,8 @@
             <tr><td>Space</td><td>Play / Stop sequencer</td></tr>
             <tr><td>&#8592;</td><td>Select prev step</td></tr>
             <tr><td>&#8594;</td><td>Select next step</td></tr>
+            <tr><td>&#8593;</td><td>Select prev row</td></tr>
+            <tr><td>&#8595;</td><td>Select next row</td></tr>
             <tr><td>Ctrl+&#8592;</td><td>Octave down</td></tr>
             <tr><td>Ctrl+&#8594;</td><td>Octave up</td></tr>
         </table>
@@ -582,6 +654,8 @@
             <tr><td>&#9679; Rec</td><td>Toggle record (red = on)</td></tr>
             <tr><td>Select</td><td>Record to fixed selected step</td></tr>
             <tr><td>SH-101</td><td>Record + auto-advance step</td></tr>
+            <tr><td>+</td><td>Add sequencer row</td></tr>
+            <tr><td>&#9650;1&#9660;</td><td>Row repeat count</td></tr>
             <tr><td>Vol</td><td>Sequencer output level</td></tr>
             <tr><td>Metro</td><td>Metronome (playback only)</td></tr>
             <tr><td>Res</td><td>Metro density: 1 bar – 1/16</td></tr>
@@ -1267,7 +1341,7 @@
         playFreqs(note, freqs);
 
         if (seqRecordMode) {
-          seqRecordToStep(seqSelectedStep, note);
+          seqRecordToStep(seqSelectedRow, seqSelectedStep, note);
           if (document.querySelector('input[name="seq-mode"]:checked').value === 'sh101') {
             seqAdvanceToNextStep();
           }
@@ -1423,15 +1497,39 @@
         document.getElementById('octave-up').click();
         return;
       }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (seqSelectedRow > 0) {
+          seqSelectedRow--;
+          seqRefreshAllClasses();
+        }
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (seqSelectedRow < sequencerRows.length - 1) {
+          seqSelectedRow++;
+          seqRefreshAllClasses();
+        }
+        return;
+      }
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        seqSelectedStep = (seqSelectedStep - 1 + SEQ_STEPS) % SEQ_STEPS;
+        seqSelectedStep--;
+        if (seqSelectedStep < 0) {
+          seqSelectedStep = SEQ_STEPS - 1;
+          seqSelectedRow = (seqSelectedRow - 1 + sequencerRows.length) % sequencerRows.length;
+        }
         seqRefreshAllClasses();
         return;
       }
       if (e.key === 'ArrowRight') {
         e.preventDefault();
-        seqSelectedStep = (seqSelectedStep + 1) % SEQ_STEPS;
+        seqSelectedStep++;
+        if (seqSelectedStep >= SEQ_STEPS) {
+          seqSelectedStep = 0;
+          seqSelectedRow = (seqSelectedRow + 1) % sequencerRows.length;
+        }
         seqRefreshAllClasses();
         return;
       }
@@ -1506,9 +1604,12 @@
     // === CHORD SEQUENCER ===
     const SEQ_STEPS = 8;
     const SEQ_KEY = 'seq';
-    const sequencerSteps = Array(SEQ_STEPS).fill(null);
+    let sequencerRows = [{ steps: Array(SEQ_STEPS).fill(null), repeat: 1 }];
+    let seqSelectedRow = 0;
     let seqSelectedStep = 0;
+    let seqCurrentRow = 0;
     let seqCurrentStep = -1;
+    let seqCurrentRowRepeat = 0;
     let seqIntervalId = null;
     let seqPlaying = false;
     let seqRecordMode = false;
@@ -1536,18 +1637,22 @@
       return a.every((f, i) => Math.abs(f - b[i]) < 0.01);
     }
 
-    function seqRecordToStep(stepIndex, rootNote) {
+    function seqRecordToStep(rowIndex, stepIndex, rootNote) {
       const shift = parseInt(document.getElementById('octave-shift').value) || 0;
       const baseNote = rootNote + (shift * 12);
       const intervals = getChordIntervals();
       const freqs = intervals.map(interval => midiToFreq(baseNote + interval));
       const label = buildChordLabel(rootNote, activeChordMode, activeExtensions, activeInversions);
-      sequencerSteps[stepIndex] = { rootNote, label, freqs };
-      seqRefreshStep(stepIndex);
+      sequencerRows[rowIndex].steps[stepIndex] = { rootNote, label, freqs };
+      seqRefreshStep(rowIndex, stepIndex);
     }
 
     function seqAdvanceToNextStep() {
-      seqSelectedStep = (seqSelectedStep + 1) % SEQ_STEPS;
+      seqSelectedStep++;
+      if (seqSelectedStep >= SEQ_STEPS) {
+        seqSelectedStep = 0;
+        seqSelectedRow = (seqSelectedRow + 1) % sequencerRows.length;
+      }
       seqRefreshAllClasses();
     }
 
@@ -1595,126 +1700,221 @@
       }
     }
 
-      function seqPlayStep(stepIndex) {
-          const step = sequencerSteps[stepIndex];
-          seqCurrentStep = stepIndex;
-          if (step !== null) {
-              if (!freqsMatch(step.freqs, seqCurrentFreqs)) {
-                  if (seqCurrentFreqs !== null) {
-                      stopFreqs(SEQ_KEY);
-                  }
-                  playFreqs(SEQ_KEY, step.freqs, seqOutputGain, 0.05);
-                  seqCurrentFreqs = step.freqs;
-              }
-              // same chord: sustain, do nothing
-          } else {
-              if (seqCurrentFreqs !== null) {
-                  stopFreqs(SEQ_KEY);
-                  seqCurrentFreqs = null;
-              }
+      function seqPlayCurrentStep() {
+        const step = sequencerRows[seqCurrentRow].steps[seqCurrentStep];
+        if (step !== null) {
+          if (!freqsMatch(step.freqs, seqCurrentFreqs)) {
+            if (seqCurrentFreqs !== null) {
+              stopFreqs(SEQ_KEY);
+            }
+            playFreqs(SEQ_KEY, step.freqs, seqOutputGain, 0.05);
+            seqCurrentFreqs = step.freqs;
           }
-          seqScheduleMetronome(0.05);
-          seqRefreshAllClasses();
+        } else {
+          if (seqCurrentFreqs !== null) {
+            stopFreqs(SEQ_KEY);
+            seqCurrentFreqs = null;
+          }
+        }
+        seqScheduleMetronome(0.05);
+        seqRefreshAllClasses();
       }
 
-    function seqRestartInterval() {
-      if (seqIntervalId) clearInterval(seqIntervalId);
-      seqIntervalId = setInterval(() => {
-        seqCurrentStep = (seqCurrentStep + 1) % SEQ_STEPS;
-        seqPlayStep(seqCurrentStep);
-      }, seqGetBarMs());
-    }
+      function seqAdvancePlayback() {
+        seqCurrentStep++;
+        if (seqCurrentStep >= SEQ_STEPS) {
+          seqCurrentStep = 0;
+          seqCurrentRowRepeat++;
+          if (seqCurrentRowRepeat >= sequencerRows[seqCurrentRow].repeat) {
+            seqCurrentRowRepeat = 0;
+            seqCurrentRow = (seqCurrentRow + 1) % sequencerRows.length;
+          }
+        }
+      }
 
-    function seqToggle() {
-      seqPlaying ? seqStop() : seqStart();
-    }
+      function seqRestartInterval() {
+        if (seqIntervalId) clearInterval(seqIntervalId);
+        seqIntervalId = setInterval(() => {
+          seqAdvancePlayback();
+          seqPlayCurrentStep();
+        }, seqGetBarMs());
+      }
 
-    function seqStart() {
-      if (seqPlaying) return;
-      initAudio();
-      seqSetRecordMode(false);
-      seqPlaying = true;
-      seqCurrentStep = 0;
-      seqCurrentFreqs = null;
-      seqPlayStep(0);
-      seqRestartInterval();
-      const btn = document.getElementById('seq-play');
-      btn.classList.add('active');
-      btn.innerHTML = '\u25A0';
-    }
+      function seqToggle() {
+        seqPlaying ? seqStop() : seqStart();
+      }
 
-    function seqStop() {
-      if (!seqPlaying) return;
-      clearInterval(seqIntervalId);
-      seqIntervalId = null;
-      seqPlaying = false;
-      seqSetRecordMode(false);
-      if (seqCurrentFreqs !== null) {
-        stopFreqs(SEQ_KEY);
+      function seqStart() {
+        if (seqPlaying) return;
+        initAudio();
+        seqSetRecordMode(false);
+        seqPlaying = true;
+        seqCurrentRow = 0;
+        seqCurrentStep = 0;
+        seqCurrentRowRepeat = 0;
         seqCurrentFreqs = null;
+        seqPlayCurrentStep();
+        seqRestartInterval();
+        const btn = document.getElementById('seq-play');
+        btn.classList.add('active');
+        btn.innerHTML = '\u25A0';
       }
-      seqCurrentStep = -1;
-      const btn = document.getElementById('seq-play');
-      btn.classList.remove('active');
-      btn.innerHTML = '\u25B6';
-      seqRefreshAllClasses();
-    }
+
+      function seqStop() {
+        if (!seqPlaying) return;
+        clearInterval(seqIntervalId);
+        seqIntervalId = null;
+        seqPlaying = false;
+        seqSetRecordMode(false);
+        if (seqCurrentFreqs !== null) {
+          stopFreqs(SEQ_KEY);
+          seqCurrentFreqs = null;
+        }
+        seqCurrentRow = 0;
+        seqCurrentStep = -1;
+        seqCurrentRowRepeat = 0;
+        const btn = document.getElementById('seq-play');
+        btn.classList.remove('active');
+        btn.innerHTML = '\u25B6';
+        seqRefreshAllClasses();
+      }
 
     function seqReset() {
       seqStop();
-      for (let i = 0; i < SEQ_STEPS; i++) {
-        sequencerSteps[i] = null;
-      }
+      sequencerRows = [{ steps: Array(SEQ_STEPS).fill(null), repeat: 1 }];
+      seqSelectedRow = 0;
       seqSelectedStep = 0;
       drawSequencer();
     }
 
-    const seqStepEls = [];
+    function seqAddRow(afterIndex) {
+      const insertIndex = afterIndex !== undefined ? afterIndex + 1 : sequencerRows.length;
+      sequencerRows.splice(insertIndex, 0, { steps: Array(SEQ_STEPS).fill(null), repeat: 1 });
+      seqSelectedRow = insertIndex;
+      seqSelectedStep = 0;
+      drawSequencer();
+    }
+
+    function seqRemoveRow(rowIndex) {
+      if (sequencerRows.length <= 1) return;
+      sequencerRows.splice(rowIndex, 1);
+      if (seqSelectedRow >= sequencerRows.length) seqSelectedRow = sequencerRows.length - 1;
+      if (seqCurrentRow >= sequencerRows.length) seqCurrentRow = sequencerRows.length - 1;
+      drawSequencer();
+    }
+
+    function seqChangeRepeat(rowIndex, delta) {
+      const row = sequencerRows[rowIndex];
+      row.repeat = Math.max(1, Math.min(99, row.repeat + delta));
+      if (seqRowEls.length > rowIndex) {
+        seqRowEls[rowIndex].repeatSpan.textContent = row.repeat;
+      }
+    }
+
+    const seqRowEls = [];
 
     function initSequencerDOM() {
       const container = document.getElementById('sequencer-steps');
       container.innerHTML = '';
-      seqStepEls.length = 0;
-      for (let i = 0; i < SEQ_STEPS; i++) {
-        const div = document.createElement('div');
-        div.className = 'seq-step';
+      seqRowEls.length = 0;
 
-        const numSpan = document.createElement('span');
-        numSpan.className = 'seq-step-num';
-        numSpan.textContent = i + 1;
-        div.appendChild(numSpan);
+      sequencerRows.forEach((row, rowIdx) => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'seq-row';
 
-        const content = document.createElement('span');
-        div.appendChild(content);
+        const stepsDiv = document.createElement('div');
+        stepsDiv.className = 'seq-row-steps';
 
-        const clearBtn = document.createElement('button');
-        clearBtn.className = 'seq-step-clear';
-        clearBtn.textContent = '\u00d7';
-        clearBtn.title = 'Clear step';
-        clearBtn.style.display = 'none';
-        clearBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          sequencerSteps[i] = null;
-          seqRefreshStep(i);
-        });
-        div.appendChild(clearBtn);
+        const stepEls = [];
+        for (let i = 0; i < SEQ_STEPS; i++) {
+          const div = document.createElement('div');
+          div.className = 'seq-step';
 
-        div.addEventListener('click', () => {
-          seqSelectedStep = i;
-          seqRefreshAllClasses();
-        });
+          const numSpan = document.createElement('span');
+          numSpan.className = 'seq-step-num';
+          numSpan.textContent = i + 1;
+          div.appendChild(numSpan);
 
-        container.appendChild(div);
-        seqStepEls.push({ div, content, clearBtn });
-      }
+          const content = document.createElement('span');
+          div.appendChild(content);
+
+          const clearBtn = document.createElement('button');
+          clearBtn.className = 'seq-step-clear';
+          clearBtn.textContent = '\u00d7';
+          clearBtn.title = 'Clear step';
+          clearBtn.style.display = 'none';
+          const ri = rowIdx, si = i;
+          clearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sequencerRows[ri].steps[si] = null;
+            seqRefreshStep(ri, si);
+          });
+          div.appendChild(clearBtn);
+
+          div.addEventListener('click', () => {
+            seqSelectedRow = ri;
+            seqSelectedStep = si;
+            seqRefreshAllClasses();
+          });
+
+          stepsDiv.appendChild(div);
+          stepEls.push({ div, content, clearBtn });
+        }
+
+        rowDiv.appendChild(stepsDiv);
+
+        const controlsDiv = document.createElement('div');
+        controlsDiv.className = 'seq-row-controls';
+
+        const addBtn = document.createElement('button');
+        addBtn.textContent = '+';
+        addBtn.title = 'Add row';
+        addBtn.addEventListener('click', () => seqAddRow(rowIdx));
+        controlsDiv.appendChild(addBtn);
+
+        const repeatDiv = document.createElement('div');
+        repeatDiv.className = 'seq-row-repeat';
+
+        const upBtn = document.createElement('button');
+        upBtn.textContent = '\u25B2';
+        upBtn.title = 'Increase repeat';
+        upBtn.addEventListener('click', () => seqChangeRepeat(rowIdx, 1));
+        repeatDiv.appendChild(upBtn);
+
+        const repeatSpan = document.createElement('span');
+        repeatSpan.textContent = row.repeat;
+        repeatDiv.appendChild(repeatSpan);
+
+        const downBtn = document.createElement('button');
+        downBtn.textContent = '\u25BC';
+        downBtn.title = 'Decrease repeat';
+        downBtn.addEventListener('click', () => seqChangeRepeat(rowIdx, -1));
+        repeatDiv.appendChild(downBtn);
+
+        controlsDiv.appendChild(repeatDiv);
+
+        if (sequencerRows.length > 1) {
+          const removeBtn = document.createElement('button');
+          removeBtn.textContent = '\u00d7';
+          removeBtn.title = 'Remove row';
+          removeBtn.style.color = '#64748b';
+          removeBtn.style.fontSize = '11px';
+          removeBtn.addEventListener('click', () => seqRemoveRow(rowIdx));
+          controlsDiv.appendChild(removeBtn);
+        }
+
+        rowDiv.appendChild(controlsDiv);
+        container.appendChild(rowDiv);
+        seqRowEls.push({ rowDiv, stepsDiv, steps: stepEls, repeatSpan });
+      });
     }
 
-    function seqRefreshStep(i) {
-      if (seqStepEls.length === 0) return;
-      const { div, content, clearBtn } = seqStepEls[i];
-      div.classList.toggle('selected', i === seqSelectedStep);
-      div.classList.toggle('playing', seqPlaying && i === seqCurrentStep);
-      const step = sequencerSteps[i];
+    function seqRefreshStep(rowIdx, stepIdx) {
+      if (seqRowEls.length === 0 || rowIdx >= seqRowEls.length) return;
+      const { div, content, clearBtn } = seqRowEls[rowIdx].steps[stepIdx];
+      div.classList.toggle('selected', rowIdx === seqSelectedRow && stepIdx === seqSelectedStep);
+      div.classList.toggle('playing', seqPlaying && rowIdx === seqCurrentRow && stepIdx === seqCurrentStep);
+      const step = sequencerRows[rowIdx].steps[stepIdx];
       if (step) {
         content.className = 'seq-step-label';
         content.textContent = step.label;
@@ -1727,18 +1927,21 @@
     }
 
     function seqRefreshAllClasses() {
-      if (seqStepEls.length === 0) return;
-      for (let i = 0; i < SEQ_STEPS; i++) {
-        const { div } = seqStepEls[i];
-        div.classList.toggle('selected', i === seqSelectedStep);
-        div.classList.toggle('playing', seqPlaying && i === seqCurrentStep);
+      for (let r = 0; r < seqRowEls.length; r++) {
+        for (let s = 0; s < SEQ_STEPS; s++) {
+          const { div } = seqRowEls[r].steps[s];
+          div.classList.toggle('selected', r === seqSelectedRow && s === seqSelectedStep);
+          div.classList.toggle('playing', seqPlaying && r === seqCurrentRow && s === seqCurrentStep);
+        }
       }
     }
 
     function drawSequencer() {
-      if (seqStepEls.length === 0) initSequencerDOM();
-      for (let i = 0; i < SEQ_STEPS; i++) {
-        seqRefreshStep(i);
+      initSequencerDOM();
+      for (let r = 0; r < sequencerRows.length; r++) {
+        for (let s = 0; s < SEQ_STEPS; s++) {
+          seqRefreshStep(r, s);
+        }
       }
     }
 
