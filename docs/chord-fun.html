@@ -275,6 +275,19 @@
       background: #38bdf8;
       color: #0f172a;
     }
+    .seq-drag-handle {
+      cursor: grab;
+      touch-action: none;
+    }
+    .seq-drag-handle:active {
+      cursor: grabbing;
+    }
+    .seq-row.dragging {
+      opacity: 0.5;
+      background: #0f172a;
+      border: 1px dashed #38bdf8;
+      border-radius: 4px;
+    }
     .seq-row-repeat {
       display: flex;
       flex-direction: column;
@@ -654,7 +667,8 @@
             <tr><td>&#9679; Rec</td><td>Toggle record (red = on)</td></tr>
             <tr><td>Select</td><td>Record to fixed selected step</td></tr>
             <tr><td>SH-101</td><td>Record + auto-advance step</td></tr>
-            <tr><td>+</td><td>Add sequencer row</td></tr>
+            <tr><td>+</td><td>Add row (long press = duplicate)</td></tr>
+            <tr><td>&#8801;</td><td>Drag to reorder rows</td></tr>
             <tr><td>&#9650;1&#9660;</td><td>Row repeat count</td></tr>
             <tr><td>Vol</td><td>Sequencer output level</td></tr>
             <tr><td>Metro</td><td>Metronome (playback only)</td></tr>
@@ -1615,6 +1629,7 @@
     let seqRecordMode = false;
     let seqCurrentFreqs = null;
     let seqOutputGain = null;
+    let seqDragState = null;
 
     function buildChordLabel(rootNote, chordMode, extensions, inversions) {
       const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -1790,9 +1805,76 @@
     function seqAddRow(afterIndex) {
       const insertIndex = afterIndex !== undefined ? afterIndex + 1 : sequencerRows.length;
       sequencerRows.splice(insertIndex, 0, { steps: Array(SEQ_STEPS).fill(null), repeat: 1 });
-      seqSelectedRow = insertIndex;
-      seqSelectedStep = 0;
+      if (insertIndex <= seqSelectedRow) seqSelectedRow++;
+      if (seqPlaying && insertIndex <= seqCurrentRow) seqCurrentRow++;
       drawSequencer();
+    }
+
+    function seqDuplicateRow(rowIndex) {
+      const source = sequencerRows[rowIndex];
+      const copiedSteps = source.steps.map(s => s ? { ...s, freqs: [...s.freqs] } : null);
+      const insertIndex = rowIndex + 1;
+      sequencerRows.splice(insertIndex, 0, { steps: copiedSteps, repeat: source.repeat });
+      if (insertIndex <= seqSelectedRow) seqSelectedRow++;
+      if (seqPlaying && insertIndex <= seqCurrentRow) seqCurrentRow++;
+      drawSequencer();
+    }
+
+    function seqMoveRow(fromIndex, toIndex) {
+      if (fromIndex === toIndex) return;
+      const [row] = sequencerRows.splice(fromIndex, 1);
+      sequencerRows.splice(toIndex, 0, row);
+      if (seqSelectedRow === fromIndex) {
+        seqSelectedRow = toIndex;
+      } else if (fromIndex < toIndex) {
+        if (seqSelectedRow > fromIndex && seqSelectedRow <= toIndex) seqSelectedRow--;
+      } else {
+        if (seqSelectedRow >= toIndex && seqSelectedRow < fromIndex) seqSelectedRow++;
+      }
+      if (seqPlaying) {
+        if (seqCurrentRow === fromIndex) {
+          seqCurrentRow = toIndex;
+        } else if (fromIndex < toIndex) {
+          if (seqCurrentRow > fromIndex && seqCurrentRow <= toIndex) seqCurrentRow--;
+        } else {
+          if (seqCurrentRow >= toIndex && seqCurrentRow < fromIndex) seqCurrentRow++;
+        }
+      }
+      drawSequencer();
+      if (seqDragState) {
+        seqRowEls[toIndex].rowDiv.classList.add('dragging');
+      }
+    }
+
+    function seqOnDragMove(e) {
+      if (!seqDragState) return;
+      const container = document.getElementById('sequencer-steps');
+      const rows = container.children;
+      for (let i = 0; i < rows.length; i++) {
+        if (i === seqDragState.rowIndex) continue;
+        const rect = rows[i].getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (i < seqDragState.rowIndex && e.clientY < midY) {
+          seqMoveRow(seqDragState.rowIndex, i);
+          seqDragState.rowIndex = i;
+          return;
+        }
+        if (i > seqDragState.rowIndex && e.clientY > midY) {
+          seqMoveRow(seqDragState.rowIndex, i);
+          seqDragState.rowIndex = i;
+          return;
+        }
+      }
+    }
+
+    function seqOnDragEnd() {
+      if (!seqDragState) return;
+      if (seqRowEls[seqDragState.rowIndex]) {
+        seqRowEls[seqDragState.rowIndex].rowDiv.classList.remove('dragging');
+      }
+      seqDragState = null;
+      document.removeEventListener('pointermove', seqOnDragMove);
+      document.removeEventListener('pointerup', seqOnDragEnd);
     }
 
     function seqRemoveRow(rowIndex) {
@@ -1866,10 +1948,37 @@
         const controlsDiv = document.createElement('div');
         controlsDiv.className = 'seq-row-controls';
 
+        const dragHandle = document.createElement('button');
+        dragHandle.textContent = '\u2261';
+        dragHandle.title = 'Drag to reorder';
+        dragHandle.className = 'seq-drag-handle';
+        dragHandle.addEventListener('pointerdown', (e) => {
+          if (sequencerRows.length < 2) return;
+          e.preventDefault();
+          seqDragState = { rowIndex: rowIdx };
+          rowDiv.classList.add('dragging');
+          document.addEventListener('pointermove', seqOnDragMove);
+          document.addEventListener('pointerup', seqOnDragEnd);
+        });
+        dragHandle.addEventListener('contextmenu', (e) => e.preventDefault());
+        controlsDiv.appendChild(dragHandle);
+
         const addBtn = document.createElement('button');
         addBtn.textContent = '+';
-        addBtn.title = 'Add row';
-        addBtn.addEventListener('click', () => seqAddRow(rowIdx));
+        addBtn.title = 'Add row (long press to duplicate)';
+        let addLpTimer = null;
+        let addLpFired = false;
+        addBtn.addEventListener('pointerdown', (e) => {
+          e.preventDefault();
+          addLpFired = false;
+          addLpTimer = setTimeout(() => { addLpFired = true; seqDuplicateRow(rowIdx); }, 500);
+        });
+        addBtn.addEventListener('pointerup', () => {
+          clearTimeout(addLpTimer);
+          if (!addLpFired) seqAddRow(rowIdx);
+        });
+        addBtn.addEventListener('pointerleave', () => { clearTimeout(addLpTimer); });
+        addBtn.addEventListener('contextmenu', (e) => e.preventDefault());
         controlsDiv.appendChild(addBtn);
 
         const repeatDiv = document.createElement('div');
