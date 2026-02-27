@@ -1968,14 +1968,17 @@
         addBtn.title = 'Add row (long press to duplicate)';
         let addLpTimer = null;
         let addLpFired = false;
+        let addLpActive = false;
         addBtn.addEventListener('pointerdown', (e) => {
           e.preventDefault();
+          addLpActive = true;
           addLpFired = false;
           addLpTimer = setTimeout(() => { addLpFired = true; seqDuplicateRow(rowIdx); }, 500);
         });
         addBtn.addEventListener('pointerup', () => {
           clearTimeout(addLpTimer);
-          if (!addLpFired) seqAddRow(rowIdx);
+          if (addLpActive && !addLpFired && !seqDragState) seqAddRow(rowIdx);
+          addLpActive = false;
         });
         addBtn.addEventListener('pointerleave', () => { clearTimeout(addLpTimer); });
         addBtn.addEventListener('contextmenu', (e) => e.preventDefault());
