@@ -249,23 +249,23 @@
       }
     }
     .seq-row-controls {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 3px;
-      justify-content: center;
-      align-items: center;
-      min-width: 28px;
+      justify-items: center;
+      align-content: center;
+      min-width: 64px;
     }
     .seq-row-controls > button {
-      width: 24px;
-      height: 20px;
+      width: 30px;
+      height: 28px;
       background: #0f172a;
       color: #94a3b8;
       border: 1px solid #334155;
       border-radius: 3px;
       cursor: pointer;
       font-family: monospace;
-      font-size: 13px;
+      font-size: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -295,14 +295,14 @@
       gap: 0;
     }
     .seq-row-repeat button {
-      width: 24px;
-      height: 14px;
+      width: 30px;
+      height: 16px;
       background: #0f172a;
       color: #94a3b8;
       border: 1px solid #334155;
       border-radius: 2px;
       cursor: pointer;
-      font-size: 8px;
+      font-size: 9px;
       font-family: monospace;
       display: flex;
       align-items: center;
@@ -2009,8 +2009,6 @@
           const removeBtn = document.createElement('button');
           removeBtn.textContent = '\u00d7';
           removeBtn.title = 'Remove row';
-          removeBtn.style.color = '#64748b';
-          removeBtn.style.fontSize = '11px';
           removeBtn.addEventListener('click', () => seqRemoveRow(rowIdx));
           controlsDiv.appendChild(removeBtn);
         }
