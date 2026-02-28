@@ -248,6 +248,14 @@
         grid-template-columns: repeat(8, 1fr);
       }
     }
+    .seq-row-steps.seq-16 {
+      grid-template-columns: repeat(8, 1fr);
+    }
+    @media (min-width: 600px) {
+      .seq-row-steps.seq-16 {
+        grid-template-columns: repeat(16, 1fr);
+      }
+    }
     .seq-row-controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -670,6 +678,7 @@
             <tr><td>+</td><td>Add row (long press = duplicate)</td></tr>
             <tr><td>&#8801;</td><td>Drag to reorder rows</td></tr>
             <tr><td>&#9650;1&#9660;</td><td>Row repeat count</td></tr>
+            <tr><td>8&#8594;16</td><td>Expand row to 16 half-time steps</td></tr>
             <tr><td>Vol</td><td>Sequencer output level</td></tr>
             <tr><td>Metro</td><td>Metronome (playback only)</td></tr>
             <tr><td>Res</td><td>Metro density: 1 bar – 1/16</td></tr>
@@ -1515,6 +1524,8 @@
         e.preventDefault();
         if (seqSelectedRow > 0) {
           seqSelectedRow--;
+          const maxStep = sequencerRows[seqSelectedRow].stepCount - 1;
+          if (seqSelectedStep > maxStep) seqSelectedStep = maxStep;
           seqRefreshAllClasses();
         }
         return;
@@ -1523,6 +1534,8 @@
         e.preventDefault();
         if (seqSelectedRow < sequencerRows.length - 1) {
           seqSelectedRow++;
+          const maxStep = sequencerRows[seqSelectedRow].stepCount - 1;
+          if (seqSelectedStep > maxStep) seqSelectedStep = maxStep;
           seqRefreshAllClasses();
         }
         return;
@@ -1531,8 +1544,8 @@
         e.preventDefault();
         seqSelectedStep--;
         if (seqSelectedStep < 0) {
-          seqSelectedStep = SEQ_STEPS - 1;
           seqSelectedRow = (seqSelectedRow - 1 + sequencerRows.length) % sequencerRows.length;
+          seqSelectedStep = sequencerRows[seqSelectedRow].stepCount - 1;
         }
         seqRefreshAllClasses();
         return;
@@ -1540,7 +1553,7 @@
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         seqSelectedStep++;
-        if (seqSelectedStep >= SEQ_STEPS) {
+        if (seqSelectedStep >= sequencerRows[seqSelectedRow].stepCount) {
           seqSelectedStep = 0;
           seqSelectedRow = (seqSelectedRow + 1) % sequencerRows.length;
         }
@@ -1618,7 +1631,7 @@
     // === CHORD SEQUENCER ===
     const SEQ_STEPS = 8;
     const SEQ_KEY = 'seq';
-    let sequencerRows = [{ steps: Array(SEQ_STEPS).fill(null), repeat: 1 }];
+    let sequencerRows = [{ steps: Array(SEQ_STEPS).fill(null), repeat: 1, stepCount: SEQ_STEPS }];
     let seqSelectedRow = 0;
     let seqSelectedStep = 0;
     let seqCurrentRow = 0;
@@ -1664,7 +1677,7 @@
 
     function seqAdvanceToNextStep() {
       seqSelectedStep++;
-      if (seqSelectedStep >= SEQ_STEPS) {
+      if (seqSelectedStep >= sequencerRows[seqSelectedRow].stepCount) {
         seqSelectedStep = 0;
         seqSelectedRow = (seqSelectedRow + 1) % sequencerRows.length;
       }
@@ -1674,6 +1687,10 @@
     function seqGetBarMs() {
       const bpm = parseInt(document.getElementById('seq-bpm').value) || 120;
       return (4 * 60 * 1000) / bpm;
+    }
+
+    function seqGetStepMs(row) {
+      return seqGetBarMs() * SEQ_STEPS / (row ? row.stepCount : SEQ_STEPS);
     }
 
     function seqSetRecordMode(val) {
@@ -1699,19 +1716,27 @@
     function seqScheduleMetronome(scheduleOffset = 0.005) {
       if (!audioCtx || !document.getElementById('seq-metronome').checked) return;
       const divisions = parseInt(document.getElementById('seq-metro-res').value) || 4;
+      const currentRow = sequencerRows[seqCurrentRow];
       const barSec = seqGetBarMs() / 1000;
       const divSec = barSec / divisions;
+      const stepsPerBar = currentRow.stepCount / SEQ_STEPS;
+      const stepSec = barSec / stepsPerBar;
+      const subStep = seqCurrentStep % stepsPerBar;
+      const stepStartInBar = subStep * stepSec;
       const now = audioCtx.currentTime + scheduleOffset;
       for (let i = 0; i < divisions; i++) {
-        let accent;
-        if (i === 0) {
-          accent = 2;
-        } else if ((i * 4) % divisions === 0) {
-          accent = 1;
-        } else {
-          accent = 0;
+        const clickTimeInBar = i * divSec;
+        if (clickTimeInBar >= stepStartInBar && clickTimeInBar < stepStartInBar + stepSec) {
+          let accent;
+          if (i === 0) {
+            accent = 2;
+          } else if ((i * 4) % divisions === 0) {
+            accent = 1;
+          } else {
+            accent = 0;
+          }
+          playMetronomeClick(now + (clickTimeInBar - stepStartInBar), accent);
         }
-        playMetronomeClick(now + i * divSec, accent);
       }
     }
 
@@ -1737,7 +1762,7 @@
 
       function seqAdvancePlayback() {
         seqCurrentStep++;
-        if (seqCurrentStep >= SEQ_STEPS) {
+        if (seqCurrentStep >= sequencerRows[seqCurrentRow].stepCount) {
           seqCurrentStep = 0;
           seqCurrentRowRepeat++;
           if (seqCurrentRowRepeat >= sequencerRows[seqCurrentRow].repeat) {
@@ -1748,11 +1773,13 @@
       }
 
       function seqRestartInterval() {
-        if (seqIntervalId) clearInterval(seqIntervalId);
-        seqIntervalId = setInterval(() => {
+        if (seqIntervalId) clearTimeout(seqIntervalId);
+        function tick() {
           seqAdvancePlayback();
           seqPlayCurrentStep();
-        }, seqGetBarMs());
+          seqIntervalId = setTimeout(tick, seqGetStepMs(sequencerRows[seqCurrentRow]));
+        }
+        seqIntervalId = setTimeout(tick, seqGetStepMs(sequencerRows[seqCurrentRow]));
       }
 
       function seqToggle() {
@@ -1777,7 +1804,7 @@
 
       function seqStop() {
         if (!seqPlaying) return;
-        clearInterval(seqIntervalId);
+        clearTimeout(seqIntervalId);
         seqIntervalId = null;
         seqPlaying = false;
         seqSetRecordMode(false);
@@ -1796,7 +1823,7 @@
 
     function seqReset() {
       seqStop();
-      sequencerRows = [{ steps: Array(SEQ_STEPS).fill(null), repeat: 1 }];
+      sequencerRows = [{ steps: Array(SEQ_STEPS).fill(null), repeat: 1, stepCount: SEQ_STEPS }];
       seqSelectedRow = 0;
       seqSelectedStep = 0;
       drawSequencer();
@@ -1804,7 +1831,7 @@
 
     function seqAddRow(afterIndex) {
       const insertIndex = afterIndex !== undefined ? afterIndex + 1 : sequencerRows.length;
-      sequencerRows.splice(insertIndex, 0, { steps: Array(SEQ_STEPS).fill(null), repeat: 1 });
+      sequencerRows.splice(insertIndex, 0, { steps: Array(SEQ_STEPS).fill(null), repeat: 1, stepCount: SEQ_STEPS });
       if (insertIndex <= seqSelectedRow) seqSelectedRow++;
       if (seqPlaying && insertIndex <= seqCurrentRow) seqCurrentRow++;
       drawSequencer();
@@ -1814,7 +1841,7 @@
       const source = sequencerRows[rowIndex];
       const copiedSteps = source.steps.map(s => s ? { ...s, freqs: [...s.freqs] } : null);
       const insertIndex = rowIndex + 1;
-      sequencerRows.splice(insertIndex, 0, { steps: copiedSteps, repeat: source.repeat });
+      sequencerRows.splice(insertIndex, 0, { steps: copiedSteps, repeat: source.repeat, stepCount: source.stepCount });
       if (insertIndex <= seqSelectedRow) seqSelectedRow++;
       if (seqPlaying && insertIndex <= seqCurrentRow) seqCurrentRow++;
       drawSequencer();
@@ -1885,6 +1912,23 @@
       drawSequencer();
     }
 
+    function seqSplitRow(rowIndex) {
+      const row = sequencerRows[rowIndex];
+      if (row.stepCount >= 16) return;
+      const orig = row.steps.slice();
+      const newSteps = Array(16).fill(null);
+      for (let i = 0; i < 8; i++) {
+        const s = orig[i];
+        newSteps[i * 2] = s ? { ...s, freqs: [...s.freqs] } : null;
+      }
+      row.steps = newSteps;
+      row.stepCount = 16;
+      if (seqSelectedRow === rowIndex && seqSelectedStep >= 16) {
+        seqSelectedStep = 15;
+      }
+      drawSequencer();
+    }
+
     function seqChangeRepeat(rowIndex, delta) {
       const row = sequencerRows[rowIndex];
       row.repeat = Math.max(1, Math.min(99, row.repeat + delta));
@@ -1906,9 +1950,10 @@
 
         const stepsDiv = document.createElement('div');
         stepsDiv.className = 'seq-row-steps';
+        if (row.stepCount === 16) stepsDiv.classList.add('seq-16');
 
         const stepEls = [];
-        for (let i = 0; i < SEQ_STEPS; i++) {
+        for (let i = 0; i < row.stepCount; i++) {
           const div = document.createElement('div');
           div.className = 'seq-step';
 
@@ -2005,6 +2050,16 @@
 
         controlsDiv.appendChild(repeatDiv);
 
+        const splitBtn = document.createElement('button');
+        splitBtn.textContent = '8\u219216';
+        splitBtn.title = 'Expand to 16 half-time steps';
+        splitBtn.addEventListener('click', () => seqSplitRow(rowIdx));
+        if (row.stepCount >= 16) {
+          splitBtn.disabled = true;
+          splitBtn.style.opacity = '0.3';
+        }
+        controlsDiv.appendChild(splitBtn);
+
         if (sequencerRows.length > 1) {
           const removeBtn = document.createElement('button');
           removeBtn.textContent = '\u00d7';
@@ -2038,7 +2093,7 @@
 
     function seqRefreshAllClasses() {
       for (let r = 0; r < seqRowEls.length; r++) {
-        for (let s = 0; s < SEQ_STEPS; s++) {
+        for (let s = 0; s < seqRowEls[r].steps.length; s++) {
           const { div } = seqRowEls[r].steps[s];
           div.classList.toggle('selected', r === seqSelectedRow && s === seqSelectedStep);
           div.classList.toggle('playing', seqPlaying && r === seqCurrentRow && s === seqCurrentStep);
@@ -2049,7 +2104,7 @@
     function drawSequencer() {
       initSequencerDOM();
       for (let r = 0; r < sequencerRows.length; r++) {
-        for (let s = 0; s < SEQ_STEPS; s++) {
+        for (let s = 0; s < sequencerRows[r].stepCount; s++) {
           seqRefreshStep(r, s);
         }
       }
