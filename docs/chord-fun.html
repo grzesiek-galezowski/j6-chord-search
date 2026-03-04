@@ -568,6 +568,15 @@
             </div>
             <input type="hidden" id="octave-shift" value="0" />
         </div>
+        <div class="stepper-group">
+            <label>Displayed Octaves:</label>
+            <div class="stepper">
+                <button type="button" id="display-octaves-down">-</button>
+                <span id="display-octaves-display">2</span>
+                <button type="button" id="display-octaves-up">+</button>
+            </div>
+            <input type="hidden" id="display-octaves" value="2" />
+        </div>
         <label>
             Hold Mode:
             <input type="checkbox" id="hold-mode" />
@@ -857,6 +866,32 @@
       }
     });
 
+    function getDisplayedOctaves() {
+      return Math.max(1, parseInt(document.getElementById('display-octaves').value) || 2);
+    }
+
+    document.getElementById('display-octaves-down').addEventListener('click', () => {
+      const input = document.getElementById('display-octaves');
+      let val = parseInt(input.value) || 2;
+      if (val > 1) {
+        val--;
+        input.value = val;
+        document.getElementById('display-octaves-display').innerText = val;
+        canvasNeedsResize = true;
+        drawPiano();
+      }
+    });
+
+    document.getElementById('display-octaves-up').addEventListener('click', () => {
+      const input = document.getElementById('display-octaves');
+      let val = parseInt(input.value) || 2;
+      val++;
+      input.value = val;
+      document.getElementById('display-octaves-display').innerText = val;
+      canvasNeedsResize = true;
+      drawPiano();
+    });
+
     // Apply default preset on load
     applyPreset('lush-pad');
 
@@ -1026,6 +1061,7 @@
 
     // State
     const pressedNotes = new Set();
+    const noteToVisualIntervals = new Map();
     const controlOctaveBase = 48; // C2
     
     // Control mappings
@@ -1154,6 +1190,20 @@
       return intervals;
     }
 
+    function getActiveChordNotes() {
+      const notes = new Set();
+
+      pressedNotes.forEach(note => {
+        if (note >= controlOctaveBase + 12) {
+          const intervals = noteToVisualIntervals.get(note) || [0];
+          const baseNote = note;
+          intervals.forEach(interval => notes.add(baseNote + interval));
+        }
+      });
+
+      return notes;
+    }
+
     // Piano drawing setup
     const canvasControl = document.getElementById('piano-control');
     const ctxControl = canvasControl.getContext('2d');
@@ -1163,7 +1213,6 @@
     const startNoteControl = 48; // C2
     const endNoteControl = 59;   // B2 (1 octave)
     const startNotePlay = 60;    // C3
-    const endNotePlay = 83;      // B4 (2 octaves)
 
     // Base dimensions for drawing logic (will scale via CSS)
     const whiteKeyWidthControl = 60; // Wider for control
@@ -1177,6 +1226,14 @@
     const blackKeyHeightPlay = 90;
     const whiteKeyHeightPlay = 150;
     const blackOffsetsPlay = [45, 90, 180, 225, 270]; // Centers for C#, D#, F#, G#, A#
+
+    function getPlayPianoConfig() {
+      const octaves = getDisplayedOctaves();
+      const whiteKeys = octaves * 7;
+      const width = whiteKeys * whiteKeyWidthPlay;
+      const endNote = startNotePlay + (octaves * 12) - 1;
+      return { octaves, width, endNote, whiteKeys };
+    }
 
     function resizeCanvas(canvas, logicalWidth, logicalHeight) {
       const rect = canvas.getBoundingClientRect();
@@ -1199,11 +1256,15 @@
     let canvasNeedsResize = true;
 
     function drawPiano() {
+      const playCfg = getPlayPianoConfig();
+
       if (canvasNeedsResize) {
         resizeCanvas(canvasControl, 420, 150);
-        resizeCanvas(canvasPlay, 630, 150);
+        resizeCanvas(canvasPlay, playCfg.width, 150);
         canvasNeedsResize = false;
       }
+
+      const activeChordNotes = getActiveChordNotes();
 
       // Draw Control Piano
       ctxControl.clearRect(0, 0, 420, 150);
@@ -1262,32 +1323,36 @@
       }
 
       // Draw Play Piano
-      ctxPlay.clearRect(0, 0, 630, 150);
+      ctxPlay.clearRect(0, 0, playCfg.width, 150);
 
-      // Draw white keys (14 keys for 2 octaves)
-      for (let i = 0; i < 14; i++) {
+      // Draw white keys
+      for (let i = 0; i < playCfg.whiteKeys; i++) {
         const x = i * whiteKeyWidthPlay;
         const octave = Math.floor(i / 7);
         const noteIndex = i % 7;
         const noteOffset = [0, 2, 4, 5, 7, 9, 11][noteIndex];
         const note = startNotePlay + octave * 12 + noteOffset;
 
-        if (note <= endNotePlay) {
-          ctxPlay.fillStyle = pressedNotes.has(note) ? 'yellow' : 'white';
+        if (note <= playCfg.endNote) {
+          const isPressed = pressedNotes.has(note);
+          const isChordTone = !isPressed && activeChordNotes.has(note);
+          ctxPlay.fillStyle = isPressed ? 'yellow' : (isChordTone ? '#93c5fd' : 'white');
           ctxPlay.fillRect(x, 0, whiteKeyWidthPlay, whiteKeyHeightPlay);
           ctxPlay.strokeRect(x, 0, whiteKeyWidthPlay, whiteKeyHeightPlay);
         }
       }
 
-      // Draw black keys (10 keys, 5 per octave for 2 octaves)
-      for (let octave = 0; octave < 2; octave++) {
+      // Draw black keys
+      for (let octave = 0; octave < playCfg.octaves; octave++) {
         const startX = (octave * 7 * whiteKeyWidthPlay);
         const blackNotesPlay = [1, 3, 6, 8, 10];
         for (let i = 0; i < 5; i++) {
           const note = startNotePlay + octave * 12 + blackNotesPlay[i];
-          if (note <= endNotePlay) {
+          if (note <= playCfg.endNote) {
             const x = startX + blackOffsetsPlay[i] - blackKeyWidthPlay / 2;
-            ctxPlay.fillStyle = pressedNotes.has(note) ? 'yellow' : 'black';
+            const isPressed = pressedNotes.has(note);
+            const isChordTone = !isPressed && activeChordNotes.has(note);
+            ctxPlay.fillStyle = isPressed ? 'yellow' : (isChordTone ? '#93c5fd' : 'black');
             ctxPlay.fillRect(x, 0, blackKeyWidthPlay, blackKeyHeightPlay);
           }
         }
@@ -1360,6 +1425,8 @@
         const shift = parseInt(document.getElementById('octave-shift').value) || 0;
         const baseNote = note + (shift * 12);
         const intervals = getChordIntervals();
+        noteToVisualIntervals.set(note, [...intervals]);
+        drawPiano();
         const freqs = intervals.map(interval => midiToFreq(baseNote + interval));
         playFreqs(note, freqs);
 
@@ -1374,6 +1441,11 @@
 
     function noteOff(note) {
       pressedNotes.delete(note);
+
+      if (note >= controlOctaveBase + 12) {
+        noteToVisualIntervals.delete(note);
+      }
+
       updateState();
       
       if (note >= controlOctaveBase + 12) {
@@ -1386,10 +1458,10 @@
 
     // Mouse interaction for piano
     function setupMouseEvents(canvas, isControl) {
-      const logicalWidth = isControl ? 420 : 630;
       const logicalHeight = 150;
 
       canvas.addEventListener('mousedown', (e) => {
+        const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
         const rect = canvas.getBoundingClientRect();
         const scaleX = logicalWidth / rect.width;
         const scaleY = logicalHeight / rect.height;
@@ -1425,11 +1497,11 @@
     // Touch interaction for piano
     function setupTouchEvents(canvas, isControl) {
       const activeTouches = new Map();
-      const logicalWidth = isControl ? 420 : 630;
       const logicalHeight = 150;
 
       canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
         const rect = canvas.getBoundingClientRect();
         const scaleX = logicalWidth / rect.width;
         const scaleY = logicalHeight / rect.height;
@@ -1449,6 +1521,7 @@
 
       canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
+        const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
         const rect = canvas.getBoundingClientRect();
         const scaleX = logicalWidth / rect.width;
         const scaleY = logicalHeight / rect.height;
@@ -1599,25 +1672,28 @@
           return startNoteControl + noteOffset;
         }
       } else {
-        if (x > 630 || y > 150) return null;
+        const playCfg = getPlayPianoConfig();
+        if (x > playCfg.width || y > 150) return null;
         // Check black keys first
-        for (let octave = 0; octave < 2; octave++) {
+        for (let octave = 0; octave < playCfg.octaves; octave++) {
           const startX = (octave * 7 * whiteKeyWidthPlay);
           const blackNotesPlay = [1, 3, 6, 8, 10];
           for (let i = 0; i < 5; i++) {
             const bx = startX + blackOffsetsPlay[i] - blackKeyWidthPlay / 2;
             if (x >= bx && x <= bx + blackKeyWidthPlay && y <= blackKeyHeightPlay) {
-              return startNotePlay + octave * 12 + blackNotesPlay[i];
+              const note = startNotePlay + octave * 12 + blackNotesPlay[i];
+              if (note <= playCfg.endNote) return note;
             }
           }
         }
         // Check white keys
         const whiteIndex = Math.floor(x / whiteKeyWidthPlay);
-        if (whiteIndex >= 0 && whiteIndex < 14) {
+        if (whiteIndex >= 0 && whiteIndex < playCfg.whiteKeys) {
           const octave = Math.floor(whiteIndex / 7);
           const noteIndex = whiteIndex % 7;
           const noteOffset = [0, 2, 4, 5, 7, 9, 11][noteIndex];
-          return startNotePlay + octave * 12 + noteOffset;
+          const note = startNotePlay + octave * 12 + noteOffset;
+          if (note <= playCfg.endNote) return note;
         }
       }
       return null;
