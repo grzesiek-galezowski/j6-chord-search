@@ -1699,10 +1699,20 @@
       return null;
     }
 
-    window.addEventListener('resize', () => {
+    function requestPianoLayoutRefresh() {
       canvasNeedsResize = true;
-      drawPiano();
-    });
+      requestAnimationFrame(() => {
+        drawPiano();
+      });
+    }
+
+    window.addEventListener('resize', requestPianoLayoutRefresh);
+    window.addEventListener('orientationchange', requestPianoLayoutRefresh);
+    window.addEventListener('pageshow', requestPianoLayoutRefresh);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', requestPianoLayoutRefresh);
+      window.visualViewport.addEventListener('scroll', requestPianoLayoutRefresh);
+    }
 
     // === CHORD SEQUENCER ===
     const SEQ_STEPS = 8;
@@ -2224,7 +2234,7 @@
     });
 
     // Initial draw needs to wait for layout to complete so bounding client rect is accurate
-    setTimeout(drawPiano, 0);
+    requestPianoLayoutRefresh();
   </script>
 </body>
 </html>
