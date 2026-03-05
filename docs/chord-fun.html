@@ -51,12 +51,14 @@
       width: 100%;
       max-width: 100%;
       height: 20vh;
+      height: 20dvh;
       min-height: 120px;
     }
     #piano-play {
       width: 100%;
       max-width: 100%;
       height: 20vh;
+      height: 20dvh;
       min-height: 120px;
     }
     .active-modes {
@@ -1463,11 +1465,7 @@
       canvas.addEventListener('mousedown', (e) => {
         const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
         const rect = canvas.getBoundingClientRect();
-        const scaleX = logicalWidth / rect.width;
-        const scaleY = logicalHeight / rect.height;
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
-        const note = getNoteFromPos(x, y, isControl);
+        const note = getNoteFromClientPos(e.clientX, e.clientY, rect, logicalWidth, logicalHeight, isControl);
         if (note !== null) {
           noteOn(note);
           canvas.dataset.activeNote = note;
@@ -1509,9 +1507,7 @@
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
           if (touch.target !== canvas) continue;
-          const x = (touch.clientX - rect.left) * scaleX;
-          const y = (touch.clientY - rect.top) * scaleY;
-          const note = getNoteFromPos(x, y, isControl);
+          const note = getNoteFromClientPos(touch.clientX, touch.clientY, rect, logicalWidth, logicalHeight, isControl);
           if (note !== null) {
             noteOn(note);
             activeTouches.set(touch.identifier, note);
@@ -1529,9 +1525,7 @@
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
           if (touch.target !== canvas) continue;
-          const x = (touch.clientX - rect.left) * scaleX;
-          const y = (touch.clientY - rect.top) * scaleY;
-          const currentNote = getNoteFromPos(x, y, isControl);
+          const currentNote = getNoteFromClientPos(touch.clientX, touch.clientY, rect, logicalWidth, logicalHeight, isControl);
           const prevNote = activeTouches.get(touch.identifier);
 
           if (currentNote !== prevNote) {
@@ -1699,11 +1693,34 @@
       return null;
     }
 
+    function getNoteFromClientPos(clientX, clientY, rect, logicalWidth, logicalHeight, isControl) {
+      const scaleX = logicalWidth / rect.width;
+      const scaleY = logicalHeight / rect.height;
+
+      const xRaw = (clientX - rect.left) * scaleX;
+      const yRaw = (clientY - rect.top) * scaleY;
+      let note = getNoteFromPos(xRaw, yRaw, isControl);
+      if (note !== null) return note;
+
+      const vv = window.visualViewport;
+      if (!vv || (vv.offsetTop === 0 && vv.offsetLeft === 0)) return null;
+
+      const xAdj = (clientX + vv.offsetLeft - rect.left) * scaleX;
+      const yAdj = (clientY + vv.offsetTop - rect.top) * scaleY;
+      return getNoteFromPos(xAdj, yAdj, isControl);
+    }
+
+    let pianoRefreshTimer = null;
     function requestPianoLayoutRefresh() {
       canvasNeedsResize = true;
       requestAnimationFrame(() => {
         drawPiano();
       });
+      clearTimeout(pianoRefreshTimer);
+      pianoRefreshTimer = setTimeout(() => {
+        canvasNeedsResize = true;
+        drawPiano();
+      }, 120);
     }
 
     window.addEventListener('resize', requestPianoLayoutRefresh);
