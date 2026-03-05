@@ -8,6 +8,7 @@
     html {
       background: #0f172a;
       overscroll-behavior-y: none;
+      height: 100%;
     }
     body {
       font-family: monospace;
@@ -15,7 +16,7 @@
       padding: 20px;
       background: #0f172a;
       color: #e5e7eb;
-      min-height: 100dvh;
+      min-height: var(--app-height, 100%);
       overscroll-behavior-y: none;
     }
     .back-link {
@@ -114,28 +115,30 @@
       font-size: 14px;
     }
     .control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 6px 8px;
+      align-items: center;
       background: #0f172a;
       padding: 10px;
       border-radius: 6px;
       min-width: 200px;
     }
     .control-group h3 {
+      grid-column: 1 / -1;
       margin: 0 0 5px 0;
       font-size: 16px;
       color: #38bdf8;
     }
     .control-group label {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: contents;
     }
     .control-group input[type="range"] {
-      width: 80px;
+      width: 100%;
+      accent-color: #38bdf8;
     }
     .control-group input[type="number"], .control-group select {
+      grid-column: 2 / -1;
       width: 100px;
       background: #1e293b;
       color: #e5e7eb;
@@ -523,7 +526,7 @@
     <div class="synth-controls">
         <div class="control-group">
             <h3>Oscillator</h3>
-            <label>Waveform: 
+            <label><span>Waveform:</span>
                 <select id="osc-wave">
                     <option value="triangle">Triangle</option>
                     <option value="sawtooth">Sawtooth</option>
@@ -541,29 +544,29 @@
                     <option value="harmonic-noise">Harmonic Noise</option>
                 </select>
             </label>
-            <label>Unison Voices: <input type="number" id="unison-voices" value="1" min="1" max="8" /></label>
-            <label>Unison Detune: <input type="range" id="unison-detune" value="10" min="0" max="100" /><span class="val">10</span></label>
+            <label><span>Unison Voices:</span> <input type="number" id="unison-voices" value="1" min="1" max="8" /></label>
+            <label><span>Unison Detune:</span> <input type="range" id="unison-detune" value="10" min="0" max="100" /><span class="val">10</span></label>
         </div>
         <div class="control-group">
             <h3>Amp Envelope</h3>
-            <label>Attack: <input type="range" id="amp-a" value="10" min="0" max="2000" /><span class="val">10</span></label>
-            <label>Decay: <input type="range" id="amp-d" value="100" min="0" max="2000" /><span class="val">100</span></label>
-            <label>Sustain: <input type="range" id="amp-s" value="50" min="0" max="100" /><span class="val">50</span></label>
-            <label>Release: <input type="range" id="amp-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
+            <label><span>Attack:</span> <input type="range" id="amp-a" value="10" min="0" max="2000" /><span class="val">10</span></label>
+            <label><span>Decay:</span> <input type="range" id="amp-d" value="100" min="0" max="2000" /><span class="val">100</span></label>
+            <label><span>Sustain:</span> <input type="range" id="amp-s" value="50" min="0" max="100" /><span class="val">50</span></label>
+            <label><span>Release:</span> <input type="range" id="amp-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
         </div>
         <div class="control-group">
             <h3>Ladder Filter</h3>
-            <label>Cutoff: <input type="range" id="filt-cutoff" value="2000" min="20" max="20000" /><span class="val">2000</span></label>
-            <label>Resonance: <input type="range" id="filt-res" value="1" min="0.1" max="20" step="0.1" /><span class="val">1</span></label>
-            <label>Drive: <input type="range" id="filt-drive" value="0" min="0" max="50" /><span class="val">0</span></label>
+            <label><span>Cutoff:</span> <input type="range" id="filt-cutoff" value="2000" min="20" max="20000" /><span class="val">2000</span></label>
+            <label><span>Resonance:</span> <input type="range" id="filt-res" value="1" min="0.1" max="20" step="0.1" /><span class="val">1</span></label>
+            <label><span>Drive:</span> <input type="range" id="filt-drive" value="0" min="0" max="50" /><span class="val">0</span></label>
         </div>
         <div class="control-group">
             <h3>Filter Envelope</h3>
-            <label>Amount: <input type="range" id="filt-env-amt" value="0" min="-10000" max="10000" /><span class="val">0</span></label>
-            <label>Attack: <input type="range" id="filt-a" value="10" min="0" max="2000" /><span class="val">10</span></label>
-            <label>Decay: <input type="range" id="filt-d" value="100" min="0" max="2000" /><span class="val">100</span></label>
-            <label>Sustain: <input type="range" id="filt-s" value="50" min="0" max="100" /><span class="val">50</span></label>
-            <label>Release: <input type="range" id="filt-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
+            <label><span>Amount:</span> <input type="range" id="filt-env-amt" value="0" min="-10000" max="10000" /><span class="val">0</span></label>
+            <label><span>Attack:</span> <input type="range" id="filt-a" value="10" min="0" max="2000" /><span class="val">10</span></label>
+            <label><span>Decay:</span> <input type="range" id="filt-d" value="100" min="0" max="2000" /><span class="val">100</span></label>
+            <label><span>Sustain:</span> <input type="range" id="filt-s" value="50" min="0" max="100" /><span class="val">50</span></label>
+            <label><span>Release:</span> <input type="range" id="filt-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
         </div>
     </div>
     <div class="controls">
@@ -1704,10 +1707,20 @@
     }
 
     function getNoteFromClientPos(clientX, clientY, rect, logicalWidth, logicalHeight, isControl) {
+      // On mobile, when the address bar hides/shows, the visual viewport can
+      // be offset from the layout viewport.  Touch clientX/Y are relative to
+      // the visual viewport, but getBoundingClientRect() is relative to the
+      // layout viewport.  Compensate for the difference.
+      let adjustedLeft = rect.left;
+      let adjustedTop  = rect.top;
+      if (window.visualViewport) {
+        adjustedLeft -= window.visualViewport.offsetLeft;
+        adjustedTop  -= window.visualViewport.offsetTop;
+      }
       const scaleX = logicalWidth / rect.width;
       const scaleY = logicalHeight / rect.height;
-      const x = (clientX - rect.left) * scaleX;
-      const y = (clientY - rect.top) * scaleY;
+      const x = (clientX - adjustedLeft) * scaleX;
+      const y = (clientY - adjustedTop) * scaleY;
       return getNoteFromPos(x, y, isControl);
     }
 
@@ -1723,6 +1736,37 @@
     canvasResizeObserver.observe(canvasControl);
     canvasResizeObserver.observe(canvasPlay);
     window.addEventListener('resize', requestPianoLayoutRefresh);
+
+    // --- Mobile viewport height tracking (address-bar hide/show fix) ---
+    function updateAppHeight() {
+      const h = window.visualViewport
+        ? window.visualViewport.height
+        : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', h + 'px');
+    }
+    updateAppHeight();
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        updateAppHeight();
+        requestPianoLayoutRefresh();
+      });
+      window.visualViewport.addEventListener('scroll', () => {
+        // visualViewport scroll fires when the address bar hides/shows
+        updateAppHeight();
+        requestPianoLayoutRefresh();
+      });
+    }
+    // After an orientation change the browser UI animates; heights stabilise late
+    window.addEventListener('orientationchange', () => {
+      updateAppHeight();
+      requestPianoLayoutRefresh();
+      // Second pass after the animation settles
+      setTimeout(() => {
+        window.scrollTo(0, 0);   // re-sync layout & visual viewports
+        updateAppHeight();
+        requestPianoLayoutRefresh();
+      }, 300);
+    });
 
     // === CHORD SEQUENCER ===
     const SEQ_STEPS = 8;
