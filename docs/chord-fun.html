@@ -1712,13 +1712,11 @@
       });
     }
 
+    // ResizeObserver catches all CSS box size changes including mobile address bar hide/show
+    const canvasResizeObserver = new ResizeObserver(requestPianoLayoutRefresh);
+    canvasResizeObserver.observe(canvasControl);
+    canvasResizeObserver.observe(canvasPlay);
     window.addEventListener('resize', requestPianoLayoutRefresh);
-    window.addEventListener('orientationchange', requestPianoLayoutRefresh);
-    window.addEventListener('pageshow', requestPianoLayoutRefresh);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', requestPianoLayoutRefresh);
-      window.visualViewport.addEventListener('scroll', requestPianoLayoutRefresh);
-    }
 
     // === CHORD SEQUENCER ===
     const SEQ_STEPS = 8;
