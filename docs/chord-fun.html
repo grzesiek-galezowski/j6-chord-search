@@ -1260,7 +1260,15 @@
     function drawPiano() {
       const playCfg = getPlayPianoConfig();
 
-      if (canvasNeedsResize) {
+      // Auto-detect canvas display size changes (e.g. mobile address bar hide/show)
+      const dpr = window.devicePixelRatio || 1;
+      const cRect = canvasControl.getBoundingClientRect();
+      const pRect = canvasPlay.getBoundingClientRect();
+      if (canvasNeedsResize ||
+          canvasControl.width !== Math.round(cRect.width * dpr) ||
+          canvasControl.height !== Math.round(cRect.height * dpr) ||
+          canvasPlay.width !== Math.round(pRect.width * dpr) ||
+          canvasPlay.height !== Math.round(pRect.height * dpr)) {
         resizeCanvas(canvasControl, 420, 150);
         resizeCanvas(canvasPlay, playCfg.width, 150);
         canvasNeedsResize = false;
@@ -1501,8 +1509,6 @@
         e.preventDefault();
         const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
         const rect = canvas.getBoundingClientRect();
-        const scaleX = logicalWidth / rect.width;
-        const scaleY = logicalHeight / rect.height;
 
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
@@ -1519,8 +1525,6 @@
         e.preventDefault();
         const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
         const rect = canvas.getBoundingClientRect();
-        const scaleX = logicalWidth / rect.width;
-        const scaleY = logicalHeight / rect.height;
 
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
@@ -1696,31 +1700,16 @@
     function getNoteFromClientPos(clientX, clientY, rect, logicalWidth, logicalHeight, isControl) {
       const scaleX = logicalWidth / rect.width;
       const scaleY = logicalHeight / rect.height;
-
-      const xRaw = (clientX - rect.left) * scaleX;
-      const yRaw = (clientY - rect.top) * scaleY;
-      let note = getNoteFromPos(xRaw, yRaw, isControl);
-      if (note !== null) return note;
-
-      const vv = window.visualViewport;
-      if (!vv || (vv.offsetTop === 0 && vv.offsetLeft === 0)) return null;
-
-      const xAdj = (clientX + vv.offsetLeft - rect.left) * scaleX;
-      const yAdj = (clientY + vv.offsetTop - rect.top) * scaleY;
-      return getNoteFromPos(xAdj, yAdj, isControl);
+      const x = (clientX - rect.left) * scaleX;
+      const y = (clientY - rect.top) * scaleY;
+      return getNoteFromPos(x, y, isControl);
     }
 
-    let pianoRefreshTimer = null;
     function requestPianoLayoutRefresh() {
       canvasNeedsResize = true;
       requestAnimationFrame(() => {
         drawPiano();
       });
-      clearTimeout(pianoRefreshTimer);
-      pianoRefreshTimer = setTimeout(() => {
-        canvasNeedsResize = true;
-        drawPiano();
-      }, 120);
     }
 
     window.addEventListener('resize', requestPianoLayoutRefresh);
