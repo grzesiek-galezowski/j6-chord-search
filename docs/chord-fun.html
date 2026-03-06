@@ -551,6 +551,12 @@
         </div>
         <div class="control-group">
             <h3>Ladder Filter</h3>
+          <label><span>Slope:</span>
+            <select id="filt-slope">
+              <option value="12" selected>12 dB/oct</option>
+              <option value="24">24 dB/oct</option>
+            </select>
+          </label>
             <label><span>Cutoff:</span> <input type="range" id="filt-cutoff" value="2000" min="20" max="20000" /><span class="val">2000</span></label>
             <label><span>Resonance:</span> <input type="range" id="filt-res" value="1" min="0.1" max="20" step="0.1" /><span class="val">1</span></label>
             <label><span>Drive:</span> <input type="range" id="filt-drive" value="0" min="0" max="50" /><span class="val">0</span></label>
@@ -707,7 +713,7 @@
             <tr><td>Waveform</td><td>Oscillator shape (14 types)</td></tr>
             <tr><td>Unison</td><td>Stacked voices + detune spread</td></tr>
             <tr><td>Amp Env</td><td>ADSR volume envelope</td></tr>
-            <tr><td>Filter</td><td>Dual LP ladder; cutoff, Q, drive</td></tr>
+            <tr><td>Filter</td><td>LP ladder; 12/24 dB, cutoff, Q, drive</td></tr>
             <tr><td>Filt Env</td><td>Cutoff ADSR sweep (&#177;10 kHz)</td></tr>
         </table>
     </div>
@@ -785,6 +791,7 @@
       'lush-pad': {
         wave: 'soft-saw', unisonVoices: 4, unisonDetune: 25,
         ampA: 10, ampD: 1500, ampS: 70, ampR: 2000,
+        filtSlope: 12,
         filtCutoff: 800, filtRes: 2, filtDrive: 5,
         filtEnvAmt: 1500, filtA: 60, filtD: 2000, filtS: 50, filtR: 2000,
         octaveShift: -1
@@ -792,6 +799,7 @@
       'plucky-synth': {
         wave: 'pluck', unisonVoices: 2, unisonDetune: 10,
         ampA: 10, ampD: 500, ampS: 0, ampR: 500,
+        filtSlope: 12,
         filtCutoff: 500, filtRes: 5, filtDrive: 10,
         filtEnvAmt: 4000, filtA: 10, filtD: 300, filtS: 0, filtR: 300,
         octaveShift: 0
@@ -799,6 +807,7 @@
       'dirty-bass': {
         wave: 'sawtooth', unisonVoices: 3, unisonDetune: 15,
         ampA: 20, ampD: 800, ampS: 40, ampR: 400,
+        filtSlope: 12,
         filtCutoff: 200, filtRes: 8, filtDrive: 30,
         filtEnvAmt: 2000, filtA: 20, filtD: 500, filtS: 20, filtR: 400,
         octaveShift: -2
@@ -806,6 +815,7 @@
       'soft-keys': {
         wave: 'sine', unisonVoices: 1, unisonDetune: 0,
         ampA: 50, ampD: 1000, ampS: 30, ampR: 1000,
+        filtSlope: 12,
         filtCutoff: 1200, filtRes: 1, filtDrive: 0,
         filtEnvAmt: 500, filtA: 50, filtD: 800, filtS: 30, filtR: 1000,
         octaveShift: 0
@@ -813,6 +823,7 @@
       'basic-triangle': {
         wave: 'triangle', unisonVoices: 1, unisonDetune: 10,
         ampA: 10, ampD: 100, ampS: 50, ampR: 200,
+        filtSlope: 12,
         filtCutoff: 2000, filtRes: 1, filtDrive: 0,
         filtEnvAmt: 0, filtA: 10, filtD: 100, filtS: 50, filtR: 200,
         octaveShift: 0
@@ -837,6 +848,8 @@
         const span = el.nextElementSibling;
         if (span && span.classList.contains('val')) span.innerText = val;
       };
+
+      document.getElementById('filt-slope').value = String(p.filtSlope || 12);
 
       setRange('unison-detune', p.unisonDetune);
       setRange('amp-a', p.ampA);
@@ -915,6 +928,7 @@
         ampD: parseFloat(document.getElementById('amp-d').value) / 1000,
         ampS: parseFloat(document.getElementById('amp-s').value) / 100,
         ampR: parseFloat(document.getElementById('amp-r').value) / 1000,
+        filtSlope: parseInt(document.getElementById('filt-slope').value, 10) || 12,
         filtCutoff: parseFloat(document.getElementById('filt-cutoff').value),
         filtRes: parseFloat(document.getElementById('filt-res').value),
         filtDrive: parseFloat(document.getElementById('filt-drive').value),
@@ -983,16 +997,24 @@
         filter1.type = 'lowpass';
         filter1.Q.value = params.filtRes;
 
-        const filter2 = audioCtx.createBiquadFilter();
-        filter2.type = 'lowpass';
-        filter2.Q.value = params.filtRes;
+        const filters = [filter1];
+        if (params.filtSlope === 24) {
+          const filter2 = audioCtx.createBiquadFilter();
+          filter2.type = 'lowpass';
+          filter2.Q.value = params.filtRes;
+          filters.push(filter2);
+        }
 
         const ampNode = audioCtx.createGain();
         ampNode.gain.value = 0;
 
         driveNode.connect(filter1);
-        filter1.connect(filter2);
-        filter2.connect(ampNode);
+        if (filters.length > 1) {
+          filter1.connect(filters[1]);
+          filters[1].connect(ampNode);
+        } else {
+          filter1.connect(ampNode);
+        }
         ampNode.connect(dest);
 
         ampNode.gain.setValueAtTime(0, noteStartTime);
@@ -1003,7 +1025,7 @@
         const peakCutoff = Math.max(20, Math.min(20000, baseCutoff + params.filtEnvAmt));
         const sustainCutoff = Math.max(20, Math.min(20000, baseCutoff + params.filtEnvAmt * params.filtS));
 
-        [filter1, filter2].forEach(f => {
+        filters.forEach(f => {
           f.frequency.setValueAtTime(baseCutoff, noteStartTime);
           f.frequency.linearRampToValueAtTime(peakCutoff, noteStartTime + params.filtA);
           f.frequency.exponentialRampToValueAtTime(Math.max(20, sustainCutoff), noteStartTime + params.filtA + params.filtD);
@@ -1032,7 +1054,7 @@
           oscs.push(osc);
         }
 
-        voiceNodes.push({ oscs, ampNode, filter1, filter2, params });
+        voiceNodes.push({ oscs, ampNode, filters, params });
       });
 
       activeOscillators.set(midiNote, voiceNodes);
@@ -1044,20 +1066,18 @@
         const now = audioCtx.currentTime;
 
         voiceNodes.forEach(voice => {
-          const { oscs, ampNode, filter1, filter2, params } = voice;
+          const { oscs, ampNode, filters, params } = voice;
 
           ampNode.gain.cancelScheduledValues(now);
           ampNode.gain.setValueAtTime(ampNode.gain.value, now);
           ampNode.gain.exponentialRampToValueAtTime(0.0001, now + params.ampR);
 
           const baseCutoff = params.filtCutoff;
-          filter1.frequency.cancelScheduledValues(now);
-          filter1.frequency.setValueAtTime(filter1.frequency.value, now);
-          filter1.frequency.exponentialRampToValueAtTime(Math.max(20, baseCutoff), now + params.filtR);
-
-          filter2.frequency.cancelScheduledValues(now);
-          filter2.frequency.setValueAtTime(filter2.frequency.value, now);
-          filter2.frequency.exponentialRampToValueAtTime(Math.max(20, baseCutoff), now + params.filtR);
+          filters.forEach(f => {
+            f.frequency.cancelScheduledValues(now);
+            f.frequency.setValueAtTime(f.frequency.value, now);
+            f.frequency.exponentialRampToValueAtTime(Math.max(20, baseCutoff), now + params.filtR);
+          });
 
           oscs.forEach(osc => {
             osc.stop(now + params.ampR + 0.1);
