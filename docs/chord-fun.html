@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script>
-
     <title>Chord Fun</title>
     <style>
         html {
@@ -221,6 +218,29 @@
 
             .control-group {
                 min-width: 0;
+            }
+
+            .control-group label {
+                display: grid;
+                grid-column: 1 / -1;
+                grid-template-columns: minmax(0, 1fr) auto;
+                gap: 4px 8px;
+                align-items: center;
+                min-width: 0;
+            }
+
+            .control-group label > span:first-child {
+                grid-column: 1 / -1;
+            }
+
+            .control-group input[type="range"],
+            .control-group input[type="number"],
+            .control-group select {
+                grid-column: auto;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
             }
 
             .synth-controls {
