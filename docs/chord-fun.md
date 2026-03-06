@@ -276,7 +276,7 @@ Unchecking Hold Mode immediately returns to real-time key-tracking.
 
 ### Octave Shift
 
-The **Synth Octave Shift** stepper (range −3 to +3) offsets all computed chord frequencies by whole octaves before synthesis. It does not affect which MIDI note is used as a map key in `activeOscillators` — only the frequencies passed to `playFreqs`. The shift is also applied when the sequencer records a step, so recorded frequencies reflect the shift at record time.
+The **Octave Offset** stepper (range −3 to +3) offsets all computed chord frequencies by whole octaves before synthesis. It does not affect which MIDI note is used as a map key in `activeOscillators` — only the frequencies passed to `playFreqs`. The shift is also applied when the sequencer records a step, so recorded frequencies reflect the shift at record time.
 
 ### Input Methods
 
