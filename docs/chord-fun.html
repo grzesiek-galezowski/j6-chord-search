@@ -769,15 +769,17 @@
         <h4>Chord Modifiers</h4>
         <table class="help-table">
             <tr><td>z</td><td>Major</td></tr>
-            <tr><td>s</td><td>Diminished</td></tr>
+            <tr><td>s</td><td>Sus2</td></tr>
             <tr><td>x</td><td>Minor</td></tr>
-            <tr><td>d</td><td>Suspended</td></tr>
+            <tr><td>d</td><td>Sus4</td></tr>
             <tr><td>c</td><td>Inversion 1</td></tr>
             <tr><td>v</td><td>Inversion 2</td></tr>
             <tr><td>g</td><td>Ext: 6th</td></tr>
             <tr><td>b</td><td>Ext: m7</td></tr>
             <tr><td>h</td><td>Ext: M7</td></tr>
             <tr><td>n</td><td>Ext: 9th</td></tr>
+            <tr><td>j</td><td>Dim</td></tr>
+            <tr><td>m</td><td>Aug</td></tr>
         </table>
         <h4>Play — Octave 1 (C3–B3)</h4>
         <table class="help-table">
@@ -1215,10 +1217,12 @@
     
     // Control mappings
     const chordModes = {
-      48: { name: 'Major', intervals: [0, 4, 7], guitarVoicing: [0, 7, 12, 16, 19, 24] },
-      49: { name: 'Diminished', intervals: [0, 3, 6], guitarVoicing: [0, 6, 12, 15, 18, 24] },
-      50: { name: 'Minor', intervals: [0, 3, 7], guitarVoicing: [0, 7, 12, 15, 19, 24] },
-      51: { name: 'Suspended', intervals: [0, 5, 7], guitarVoicing: [0, 7, 12, 17, 19, 24] }
+      48: { name: 'Major', label: 'Maj', intervals: [0, 4, 7], guitarVoicing: [0, 7, 12, 16, 19, 24] },
+      49: { name: 'Sus2', label: 'Sus2', intervals: [0, 2, 7], guitarVoicing: [0, 7, 12, 14, 19, 24] },
+      50: { name: 'Minor', label: 'Min', intervals: [0, 3, 7], guitarVoicing: [0, 7, 12, 15, 19, 24] },
+      51: { name: 'Sus4', label: 'Sus4', intervals: [0, 5, 7], guitarVoicing: [0, 7, 12, 17, 19, 24] },
+      58: { name: 'Dim', label: 'Dim', intervals: [0, 3, 6], guitarVoicing: [0, 6, 12, 15, 18, 24] },
+      59: { name: 'Aug', label: 'Aug', intervals: [0, 4, 8], guitarVoicing: [0, 8, 12, 16, 20, 24] }
     };
 
     const chordInversions = {
@@ -1232,6 +1236,47 @@
       56: { name: 'M7', interval: 11 }, // G#2
       57: { name: '9', interval: 14 }   // A2
     };
+
+    const controlKeyColors = {
+      chord: {
+        lightWhite: '#dbeafe',
+        lightBlack: '#1e3a5f',
+        active: '#38bdf8',
+        labelWhite: '#0f172a',
+        labelBlack: '#e0f2fe'
+      },
+      modifier: {
+        lightWhite: '#fef3c7',
+        lightBlack: '#5b4423',
+        active: '#f59e0b',
+        labelWhite: '#1f2937',
+        labelBlack: '#fef3c7'
+      },
+      neutral: {
+        lightWhite: '#e2e8f0',
+        lightBlack: '#000000',
+        active: '#eab308',
+        labelWhite: '#000000',
+        labelBlack: '#ffffff'
+      }
+    };
+
+    function getControlKeyRole(note) {
+      if (chordModes[note]) return 'chord';
+      if (chordExtensions[note] || chordInversions[note]) return 'modifier';
+      return 'neutral';
+    }
+
+    function getControlKeyPalette(note) {
+      return controlKeyColors[getControlKeyRole(note)] || controlKeyColors.neutral;
+    }
+
+    function getControlKeyLabel(note) {
+      if (chordModes[note]) return chordModes[note].label || chordModes[note].name;
+      if (chordExtensions[note]) return chordExtensions[note].name;
+      if (chordInversions[note]) return chordInversions[note].name;
+      return '';
+    }
 
     let activeChordMode = null;
     const activeExtensions = new Set();
@@ -1444,13 +1489,10 @@
 
         // Label control keys
         ctxControl.fillStyle = 'black';
-        ctxControl.font = '14px monospace';
-        if (chordModes[note]) {
-          ctxControl.fillText(chordModes[note].name.substring(0, 3), x + 5, whiteKeyHeightControl - 15);
-        } else if (chordExtensions[note]) {
-          ctxControl.fillText(chordExtensions[note].name, x + 10, whiteKeyHeightControl - 15);
-        } else if (chordInversions[note]) {
-          ctxControl.fillText(chordInversions[note].name, x + 5, whiteKeyHeightControl - 15);
+        ctxControl.font = '13px monospace';
+        const whiteLabel = getControlKeyLabel(note);
+        if (whiteLabel) {
+          ctxControl.fillText(whiteLabel, x + 5, whiteKeyHeightControl - 15);
         }
       }
 
@@ -1470,13 +1512,10 @@
 
         // Label control keys
         ctxControl.fillStyle = 'white';
-        ctxControl.font = '12px monospace';
-        if (chordModes[note]) {
-          ctxControl.fillText(chordModes[note].name.substring(0, 3), x + 2, blackKeyHeightControl - 15);
-        } else if (chordExtensions[note]) {
-          ctxControl.fillText(chordExtensions[note].name, x + 5, blackKeyHeightControl - 15);
-        } else if (chordInversions[note]) {
-          ctxControl.fillText(chordInversions[note].name, x + 2, blackKeyHeightControl - 15);
+        ctxControl.font = '10px monospace';
+        const blackLabel = getControlKeyLabel(note);
+        if (blackLabel) {
+          ctxControl.fillText(blackLabel, x + 2, blackKeyHeightControl - 15);
         }
       }
 
@@ -1924,7 +1963,7 @@
       const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
       const noteName = noteNames[rootNote % 12];
       const parts = [noteName];
-      if (chordMode) parts.push(chordMode.name.substring(0, 3));
+      if (chordMode) parts.push(chordMode.label || chordMode.name);
       if (extensions && extensions.size > 0) {
         parts.push(Array.from(extensions).map(e => e.name).join('+'));
       }
