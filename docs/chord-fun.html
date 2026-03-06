@@ -563,6 +563,10 @@
             <label><span>Sustain:</span> <input type="range" id="filt-s" value="50" min="0" max="100" /><span class="val">50</span></label>
             <label><span>Release:</span> <input type="range" id="filt-r" value="200" min="0" max="5000" /><span class="val">200</span></label>
         </div>
+        <div class="control-group">
+            <h3>Master</h3>
+            <label><span>Volume (dB):</span> <input type="range" id="master-volume" value="0" min="-50" max="50" /><span class="val">0</span></label>
+        </div>
     </div>
     <div class="controls">
         <div class="stepper-group">
@@ -711,6 +715,7 @@
 <script>
     // Audio Context
     let audioCtx = null;
+    let masterGain = null;
     const activeOscillators = new Map(); // key: midiNote, value: array of voice objects
     const customWaves = {};
     const distortionCurveCache = new Map();
@@ -926,9 +931,12 @@
         const ctxOptions = IS_MOBILE ? { sampleRate: 22050 } : {};
         audioCtx = new (window.AudioContext || window.webkitAudioContext)(ctxOptions);
         initCustomWaves(audioCtx);
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = Math.pow(10, parseInt(document.getElementById('master-volume').value) / 20);
+        masterGain.connect(audioCtx.destination);
         seqOutputGain = audioCtx.createGain();
         seqOutputGain.gain.value = parseInt(document.getElementById('seq-volume').value) / 100;
-        seqOutputGain.connect(audioCtx.destination);
+        seqOutputGain.connect(masterGain);
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
@@ -955,7 +963,7 @@
 
     function playFreqs(midiNote, freqs, destination = null, scheduleOffset = 0) {
       if (!audioCtx) return;
-      const dest = destination || audioCtx.destination;
+      const dest = destination || masterGain;
       const params = getSynthParams();
       const now = audioCtx.currentTime + scheduleOffset;
       const isStrumming = document.getElementById('strumming').checked;
@@ -2267,6 +2275,12 @@
       document.getElementById('seq-volume-val').textContent = e.target.value;
       if (seqOutputGain) {
         seqOutputGain.gain.setTargetAtTime(parseInt(e.target.value) / 100, audioCtx.currentTime, 0.015);
+      }
+    });
+
+    document.getElementById('master-volume').addEventListener('input', (e) => {
+      if (masterGain) {
+        masterGain.gain.setTargetAtTime(Math.pow(10, parseInt(e.target.value) / 20), audioCtx.currentTime, 0.015);
       }
     });
 
