@@ -45,11 +45,17 @@
       gap: 10px;
       width: 100%;
     }
+    .piano-surface {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
     canvas {
       border: 1px solid black;
       background: #1e293b;
       max-width: 100%;
       touch-action: none;
+      display: block;
     }
     #piano-control {
       width: 100%;
@@ -611,8 +617,8 @@
         <div>Active Extensions: <span id="active-exts" class="active-modes">None</span></div>
     </div>
     <div class="piano-container">
-        <canvas id="piano-control" width="420" height="150"></canvas>
-        <canvas id="piano-play" width="630" height="150"></canvas>
+        <div class="piano-surface"><canvas id="piano-control" width="420" height="150"></canvas></div>
+        <div class="piano-surface"><canvas id="piano-play" width="630" height="150"></canvas></div>
     </div>
     <div class="sequencer-section">
         <h3>Chord Sequencer</h3>
@@ -1270,7 +1276,8 @@
     }
 
     function resizeCanvas(canvas, logicalWidth, logicalHeight) {
-      const rect = canvas.getBoundingClientRect();
+      const host = canvas.parentElement || canvas;
+      const rect = host.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
 
       // Set actual size in memory (scaled to account for extra pixel density)
@@ -1499,13 +1506,28 @@
     }
 
     // Mouse interaction for piano
+    function getLogicalPointFromClient(canvas, clientX, clientY, logicalWidth, logicalHeight) {
+      const host = canvas.parentElement || canvas;
+      const rect = host.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return null;
+
+      const relativeX = (clientX - rect.left) / rect.width;
+      const relativeY = (clientY - rect.top) / rect.height;
+      if (relativeX < 0 || relativeX > 1 || relativeY < 0 || relativeY > 1) return null;
+
+      return {
+        x: relativeX * logicalWidth,
+        y: relativeY * logicalHeight
+      };
+    }
+
     function setupMouseEvents(canvas, isControl) {
       const logicalHeight = 150;
 
       canvas.addEventListener('mousedown', (e) => {
         const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
-        const rect = canvas.getBoundingClientRect();
-        const note = getNoteFromClientPos(e.clientX, e.clientY, rect, logicalWidth, logicalHeight, isControl);
+        const point = getLogicalPointFromClient(canvas, e.clientX, e.clientY, logicalWidth, logicalHeight);
+        const note = point ? getNoteFromPos(point.x, point.y, isControl) : null;
         if (note !== null) {
           noteOn(note);
           canvas.dataset.activeNote = note;
@@ -1540,12 +1562,12 @@
       canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
-        const rect = canvas.getBoundingClientRect();
 
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
           if (touch.target !== canvas) continue;
-          const note = getNoteFromClientPos(touch.clientX, touch.clientY, rect, logicalWidth, logicalHeight, isControl);
+          const point = getLogicalPointFromClient(canvas, touch.clientX, touch.clientY, logicalWidth, logicalHeight);
+          const note = point ? getNoteFromPos(point.x, point.y, isControl) : null;
           if (note !== null) {
             noteOn(note);
             activeTouches.set(touch.identifier, note);
@@ -1556,12 +1578,12 @@
       canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
         const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
-        const rect = canvas.getBoundingClientRect();
 
         for (let i = 0; i < e.changedTouches.length; i++) {
           const touch = e.changedTouches[i];
           if (touch.target !== canvas) continue;
-          const currentNote = getNoteFromClientPos(touch.clientX, touch.clientY, rect, logicalWidth, logicalHeight, isControl);
+          const point = getLogicalPointFromClient(canvas, touch.clientX, touch.clientY, logicalWidth, logicalHeight);
+          const currentNote = point ? getNoteFromPos(point.x, point.y, isControl) : null;
           const prevNote = activeTouches.get(touch.identifier);
 
           if (currentNote !== prevNote) {
@@ -1727,24 +1749,6 @@
         }
       }
       return null;
-    }
-
-    function getNoteFromClientPos(clientX, clientY, rect, logicalWidth, logicalHeight, isControl) {
-      // On mobile, when the address bar hides/shows, the visual viewport can
-      // be offset from the layout viewport.  Touch clientX/Y are relative to
-      // the visual viewport, but getBoundingClientRect() is relative to the
-      // layout viewport.  Compensate for the difference.
-      let adjustedLeft = rect.left;
-      let adjustedTop  = rect.top;
-      if (window.visualViewport) {
-        adjustedLeft -= window.visualViewport.offsetLeft;
-        adjustedTop  -= window.visualViewport.offsetTop;
-      }
-      const scaleX = logicalWidth / rect.width;
-      const scaleY = logicalHeight / rect.height;
-      const x = (clientX - adjustedLeft) * scaleX;
-      const y = (clientY - adjustedTop) * scaleY;
-      return getNoteFromPos(x, y, isControl);
     }
 
     function requestPianoLayoutRefresh() {
