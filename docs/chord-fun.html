@@ -1092,16 +1092,56 @@
       return 440 * Math.pow(2, (midiNote - 69) / 12);
     }
 
+    const MIN_AMP_ATTACK = 0.005;
+    const MIN_AMP_RELEASE = 0.008;
+    const MIN_FILTER_RAMP = 0.005;
+
+    function getEnvelopeValueAtTime(startTime, attackTime, decayTime, peakValue, sustainValue, time) {
+      if (time <= startTime) return 0;
+
+      const attackEnd = startTime + attackTime;
+      if (time < attackEnd) {
+        const attackProgress = attackTime <= 0 ? 1 : (time - startTime) / attackTime;
+        return peakValue * Math.max(0, Math.min(1, attackProgress));
+      }
+
+      const decayEnd = attackEnd + decayTime;
+      if (time < decayEnd) {
+        const decayProgress = decayTime <= 0 ? 1 : (time - attackEnd) / decayTime;
+        return peakValue + (sustainValue - peakValue) * Math.max(0, Math.min(1, decayProgress));
+      }
+
+      return sustainValue;
+    }
+
+    function holdAudioParamAtTime(param, time, fallbackValue) {
+      if (typeof param.cancelAndHoldAtTime === 'function') {
+        param.cancelAndHoldAtTime(time);
+        return;
+      }
+
+      param.cancelScheduledValues(time);
+      param.setValueAtTime(fallbackValue, time);
+    }
+
     function playFreqs(midiNote, freqs, destination = null, scheduleOffset = 0) {
       if (!audioCtx) return;
+      if (activeOscillators.has(midiNote)) {
+        stopFreqs(midiNote);
+      }
       const dest = destination || masterGain;
       const params = getSynthParams();
       const now = audioCtx.currentTime + scheduleOffset;
       const isStrumming = document.getElementById('strumming').checked;
       const strumDelay = isStrumming ? 0.03 : 0; // 30ms delay per note
+      const ampAttack = Math.max(params.ampA, MIN_AMP_ATTACK);
+      const ampDecay = Math.max(params.ampD, 0.001);
+      const filterAttack = Math.max(params.filtA, MIN_FILTER_RAMP);
+      const filterDecay = Math.max(params.filtD, 0.001);
 
       const voiceNodes = [];
       const maxGain = 0.5 / Math.max(1, Math.sqrt(freqs.length * params.unisonVoices));
+      const sustainGain = Math.max(0.0001, maxGain * params.ampS);
 
       freqs.forEach((freq, index) => {
         const noteStartTime = now + (index * strumDelay);
@@ -1135,8 +1175,8 @@
         ampNode.connect(dest);
 
         ampNode.gain.setValueAtTime(0, noteStartTime);
-        ampNode.gain.linearRampToValueAtTime(maxGain, noteStartTime + params.ampA);
-        ampNode.gain.exponentialRampToValueAtTime(Math.max(0.0001, maxGain * params.ampS), noteStartTime + params.ampA + params.ampD);
+        ampNode.gain.linearRampToValueAtTime(maxGain, noteStartTime + ampAttack);
+        ampNode.gain.exponentialRampToValueAtTime(sustainGain, noteStartTime + ampAttack + ampDecay);
 
         const baseCutoff = params.filtCutoff;
         const peakCutoff = Math.max(20, Math.min(20000, baseCutoff + params.filtEnvAmt));
@@ -1144,8 +1184,8 @@
 
         filters.forEach(f => {
           f.frequency.setValueAtTime(baseCutoff, noteStartTime);
-          f.frequency.linearRampToValueAtTime(peakCutoff, noteStartTime + params.filtA);
-          f.frequency.exponentialRampToValueAtTime(Math.max(20, sustainCutoff), noteStartTime + params.filtA + params.filtD);
+          f.frequency.linearRampToValueAtTime(peakCutoff, noteStartTime + filterAttack);
+          f.frequency.exponentialRampToValueAtTime(Math.max(20, sustainCutoff), noteStartTime + filterAttack + filterDecay);
         });
 
         const oscs = [];
@@ -1171,7 +1211,28 @@
           oscs.push(osc);
         }
 
-        voiceNodes.push({ oscs, ampNode, filters, params });
+        voiceNodes.push({
+          oscs,
+          ampNode,
+          driveNode,
+          filters,
+          params,
+          envelope: {
+            noteStartTime,
+            ampAttack,
+            ampDecay,
+            maxGain,
+            sustainGain
+          },
+          filterEnvelope: {
+            noteStartTime,
+            filterAttack,
+            filterDecay,
+            baseCutoff,
+            peakCutoff,
+            sustainCutoff
+          }
+        });
       });
 
       activeOscillators.set(midiNote, voiceNodes);
@@ -1183,27 +1244,51 @@
         const now = audioCtx.currentTime;
 
         voiceNodes.forEach(voice => {
-          const { oscs, ampNode, filters, params } = voice;
+          const { oscs, ampNode, driveNode, filters, params, envelope, filterEnvelope } = voice;
+          const ampRelease = Math.max(params.ampR, MIN_AMP_RELEASE);
+          const filterRelease = Math.max(params.filtR, MIN_FILTER_RAMP);
+          const heldGain = Math.max(
+            0.0001,
+            getEnvelopeValueAtTime(
+              envelope.noteStartTime,
+              envelope.ampAttack,
+              envelope.ampDecay,
+              envelope.maxGain,
+              envelope.sustainGain,
+              now
+            )
+          );
 
-          ampNode.gain.cancelScheduledValues(now);
-          ampNode.gain.setValueAtTime(ampNode.gain.value, now);
-          ampNode.gain.exponentialRampToValueAtTime(0.0001, now + params.ampR);
+          holdAudioParamAtTime(ampNode.gain, now, heldGain);
+          ampNode.gain.exponentialRampToValueAtTime(0.0001, now + ampRelease);
 
-          const baseCutoff = params.filtCutoff;
+          const heldCutoff = Math.max(
+            20,
+            getEnvelopeValueAtTime(
+              filterEnvelope.noteStartTime,
+              filterEnvelope.filterAttack,
+              filterEnvelope.filterDecay,
+              filterEnvelope.peakCutoff,
+              filterEnvelope.sustainCutoff,
+              now
+            )
+          );
+
           filters.forEach(f => {
-            f.frequency.cancelScheduledValues(now);
-            f.frequency.setValueAtTime(f.frequency.value, now);
-            f.frequency.exponentialRampToValueAtTime(Math.max(20, baseCutoff), now + params.filtR);
+            holdAudioParamAtTime(f.frequency, now, heldCutoff);
+            f.frequency.exponentialRampToValueAtTime(Math.max(20, filterEnvelope.baseCutoff), now + filterRelease);
           });
 
           oscs.forEach(osc => {
-            osc.stop(now + params.ampR + 0.1);
+            osc.stop(now + Math.max(ampRelease, filterRelease) + 0.1);
           });
 
           setTimeout(() => {
             oscs.forEach(osc => osc.disconnect());
+            driveNode.disconnect();
+            filters.forEach(f => f.disconnect());
             ampNode.disconnect();
-          }, (params.ampR + 0.2) * 1000);
+          }, (Math.max(ampRelease, filterRelease) + 0.2) * 1000);
         });
 
         activeOscillators.delete(midiNote);
