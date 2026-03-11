@@ -282,8 +282,8 @@ The **Octave Offset** stepper (range −3 to +3) offsets all computed chord freq
 
 | Method | Notes |
 |---|---|
-| **QWERTY keyboard** | `keydown`/`keyup` on `window`; `e.repeat` events are ignored; ignored when focus is on `INPUT` or `SELECT` elements; `ArrowLeft`/`ArrowRight` move the sequencer selected step; `Space` toggles sequencer play/stop |
-| **Mouse** | `mousedown` on the canvas triggers note-on; `mouseup` or `mouseleave` triggers note-off; one active note tracked per canvas via `dataset.activeNote` |
+| **QWERTY keyboard** | `keydown`/`keyup` on `window`; `e.repeat` events are ignored; ignored when focus is on `INPUT` or `SELECT` elements; holding `Shift` while pressing a play-key triggers a one-shot strummed voicing; `ArrowLeft`/`ArrowRight` move the sequencer selected step; `Space` toggles sequencer play/stop |
+| **Mouse** | `mousedown` on the canvas triggers note-on; right-click on a piano canvas triggers a one-shot strummed voicing and suppresses the browser context menu on that keybed; `mouseup` or `mouseleave` triggers note-off; one active note tracked per canvas via `dataset.activeNote` |
 | **Touch** | Multi-touch via `touchstart`/`touchmove`/`touchend`/`touchcancel`; each touch point tracked independently by `touch.identifier`; `touchmove` handles gliding between keys |
 | **MIDI** | Web MIDI API; status bytes 0x80–0x8F (note-off) and 0x90–0x9F (note-on, velocity > 0) are handled; note-on with velocity 0 is treated as note-off |
 

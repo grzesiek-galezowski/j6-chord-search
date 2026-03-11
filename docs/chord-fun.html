@@ -1124,7 +1124,7 @@
       param.setValueAtTime(fallbackValue, time);
     }
 
-    function playFreqs(midiNote, freqs, destination = null, scheduleOffset = 0) {
+    function playFreqs(midiNote, freqs, destination = null, scheduleOffset = 0, strumOverride = null) {
       if (!audioCtx) return;
       if (activeOscillators.has(midiNote)) {
         stopFreqs(midiNote);
@@ -1132,7 +1132,7 @@
       const dest = destination || masterGain;
       const params = getSynthParams();
       const now = audioCtx.currentTime + scheduleOffset;
-      const isStrumming = document.getElementById('strumming').checked;
+      const isStrumming = strumOverride ?? document.getElementById('strumming').checked;
       const strumDelay = isStrumming ? 0.03 : 0; // 30ms delay per note
       const ampAttack = Math.max(params.ampA, MIN_AMP_ATTACK);
       const ampDecay = Math.max(params.ampD, 0.001);
@@ -1428,10 +1428,8 @@
       drawPiano();
     }
 
-    function getChordIntervals() {
+    function getChordIntervals(isStrumming = document.getElementById('strumming').checked) {
       if (!activeChordMode) return [0];
-
-      const isStrumming = document.getElementById('strumming').checked;
       let intervals = [];
 
       if (isStrumming && activeChordMode.guitarVoicing) {
@@ -1671,7 +1669,7 @@
       }
     }
 
-    function noteOn(note) {
+    function noteOn(note, options = {}) {
       initAudio();
       pressedNotes.add(note);
 
@@ -1704,13 +1702,14 @@
 
       // If it's a playing note (above control octave)
       if (note >= controlOctaveBase + 12) {
+        const shouldStrum = options.strum ?? document.getElementById('strumming').checked;
         const shift = parseInt(document.getElementById('octave-shift').value) || 0;
         const baseNote = note + (shift * 12);
-        const intervals = getChordIntervals();
+        const intervals = getChordIntervals(shouldStrum);
         noteToVisualIntervals.set(note, [...intervals]);
         drawPiano();
         const freqs = intervals.map(interval => midiToFreq(baseNote + interval));
-        playFreqs(note, freqs);
+        playFreqs(note, freqs, null, 0, shouldStrum);
 
         if (seqRecordMode) {
           seqRecordToStep(seqSelectedRow, seqSelectedStep, note);
@@ -1758,13 +1757,21 @@
       const logicalHeight = 150;
 
       canvas.addEventListener('mousedown', (e) => {
+        if (e.button !== 0 && e.button !== 2) return;
+        if (e.button === 2) {
+          e.preventDefault();
+        }
         const logicalWidth = isControl ? 420 : getPlayPianoConfig().width;
         const point = getLogicalPointFromClient(canvas, e.clientX, e.clientY, logicalWidth, logicalHeight);
         const note = point ? getNoteFromPos(point.x, point.y, isControl) : null;
         if (note !== null) {
-          noteOn(note);
+          noteOn(note, { strum: e.button === 2 });
           canvas.dataset.activeNote = note;
         }
+      });
+
+      canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
       });
 
       canvas.addEventListener('mouseup', (e) => {
@@ -1925,7 +1932,7 @@
       }
       const key = e.key.toLowerCase();
       if (keyToNote[key] !== undefined) {
-        noteOn(keyToNote[key]);
+        noteOn(keyToNote[key], { strum: e.shiftKey });
       }
     });
 
